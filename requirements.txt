@@ -4,3 +4,4 @@ hachoir
 tenacity
 aiohttp
 aiofiles
+requests
