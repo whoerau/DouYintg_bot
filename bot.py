@@ -12,6 +12,7 @@ from scraper import Scraper
 API_ID = int(os.getenv('API_ID'))
 API_HASH = os.getenv('API_HASH')
 BOT_TOKEN = os.getenv('BOT_TOKEN')
+CHANNEL_ID = int(os.getenv('CHANNEL_ID'))
 bot = TelegramClient(None, API_ID, API_HASH,
                      # proxy=(socks.HTTP, '127.0.0.1', 10809)
                      ).start(
@@ -20,13 +21,13 @@ bot = TelegramClient(None, API_ID, API_HASH,
 
 @bot.on(events.NewMessage(pattern='/start'))
 async def send_welcome(event):
-    await event.client.send_message(event.chat_id, '向我发送抖音或者Tiktok的分享链接,下载无水印视频或图片,有问题请留言  '
+    await event.client.send_message(event.chat_id, '向我发送抖音或者Tiktok的分享链接,下载无水印视频或图片,有问题请留言 '
                                                    'Send me the share link of Douyin or Tiktok, download the video or picture without watermark, please leave a message if you have any questions')
 
 
 captionTemplate = '''标题: %s
 昵称: %s
-抖音号： %s
+抖音号: <code>%s</code>
 '''
 
 buttons = [
@@ -39,15 +40,12 @@ pattern = re.compile(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9
 @bot.on(events.NewMessage)
 async def echo_all(event):
     text = event.text
-    print(str(datetime.datetime.now()) + ':' + text)
-
     if 'v.douyin' in text:
+        print(str(datetime.datetime.now()) + ':' + text)
         await handleDouYin(event, text)
     elif 'tiktok' in text:
+        print(str(datetime.datetime.now()) + ':' + text)
         await handTiktok(event, text)
-    else:
-        await  event.client.send_message(event.chat_id,
-                                         '请输入正确的链接')
 
 
 # 进度回调
@@ -68,27 +66,28 @@ async def handTiktok(event, text):
         filename = video_aweme_id + '.mp4'
         await util.run(nwm_video_url, filename)
         # 发送视频
-        await event.client.send_file(event.chat_id,
-                                     filename,
-                                     supports_streaming=True,
-                                     # thumb=cover,
-                                     caption=video_title,
-                                     reply_to=event.id,
-                                     buttons=buttons
-                                     # progress_callback=callback
-                                     )
+        msg = await event.client.send_file(event.chat_id,
+                                           filename,
+                                           supports_streaming=True,
+                                           # thumb=cover,
+                                           caption=video_title,
+                                           reply_to=event.id,
+                                           buttons=buttons
+                                           # progress_callback=callback
+                                           )
+        await bot.forward_messages(CHANNEL_ID, msg)
         os.remove(filename)
     if tiktok_date.get('status') == 'success' and tiktok_date.get('url_type') == 'album':
         album_list = tiktok_date.get('album_list')
         album_title = tiktok_date.get('album_title')
         jpgFiles = await util.downImages(album_list)
-        await event.client.send_file(event.chat_id,
-                                     jpgFiles,
-                                     caption=album_title,
-                                     reply_to=event.id,
-                                     buttons=buttons
-                                     )
-
+        msg = await event.client.send_file(event.chat_id,
+                                           jpgFiles,
+                                           caption=album_title,
+                                           reply_to=event.id,
+                                           buttons=buttons
+                                           )
+        await bot.forward_messages(CHANNEL_ID, msg)
         for jpgFile in jpgFiles:
             os.remove(jpgFile)
 
@@ -104,13 +103,15 @@ async def handleDouYin(event, text):
     info = await douyin.getDouYinInfo(urls[0])
     if isinstance(info[0], list):
         jpgFiles = await util.downImages(info[0])
-        await event.client.send_file(event.chat_id,
-                                     jpgFiles,
-                                     caption=captionTemplate % (
-                                         info[3], '#' + info[1], '#' + info[2]),
-                                     reply_to=event.id,
-                                     progress_callback=callback
-                                     )
+        msg = await event.client.send_file(event.chat_id,
+                                           jpgFiles,
+                                           caption=captionTemplate % (
+                                               info[3], '#' + info[1], info[2]),
+                                           reply_to=event.id,
+                                           parse_mode='html',
+                                           progress_callback=callback
+                                           )
+        await bot.forward_messages(CHANNEL_ID, msg)
 
         for jpgFile in jpgFiles:
             os.remove(jpgFile)
@@ -125,15 +126,17 @@ async def handleDouYin(event, text):
         await util.run(info[4], cover)
 
         # 发送视频
-        await event.client.send_file(event.chat_id,
-                                     filename,
-                                     supports_streaming=True,
-                                     thumb=cover,
-                                     caption=captionTemplate % (
-                                         info[3], '#' + info[1], '#' + info[2]),
-                                     reply_to=event.id,
-                                     progress_callback=callback
-                                     )
+        msg = await event.client.send_file(event.chat_id,
+                                           filename,
+                                           supports_streaming=True,
+                                           thumb=cover,
+                                           caption=captionTemplate % (
+                                               info[3], '#' + info[1], info[2]),
+                                           parse_mode='html',
+                                           reply_to=event.id,
+                                           progress_callback=callback
+                                           )
+        await bot.forward_messages(CHANNEL_ID, msg)
         os.remove(filename)
         os.remove(cover)
     await msg1.delete()

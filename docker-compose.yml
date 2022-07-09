@@ -11,9 +11,10 @@ services:
     environment:
       TZ: Asia/Shanghai
       #正式
-      API_ID: 7747935
-      API_HASH: 7d98fa6e83d0d43541fa97bfb6d58f1e
-      BOT_TOKEN: 5161622943:AAF1tQwms_Ns_tiB1Vx6wNC5O13Gdq_jkq4
+      API_ID: 7747911111135
+      API_HASH: 111111
+      BOT_TOKEN: 11:111
+      CHANNEL_ID: -10255555555
 
     deploy:
       resources:
