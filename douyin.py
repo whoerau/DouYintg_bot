@@ -1,7 +1,12 @@
+import asyncio
+
 import aiohttp
+
+from tenacity import *
 
 
 # 异步解析视频或图文信息
+@retry(stop=stop_after_attempt(3), wait=wait_random(min=1, max=2))
 async def getDouYinInfo(url):
     share_url = url
     headers = {
@@ -18,7 +23,7 @@ async def getDouYinInfo(url):
             async with session.get(url, headers=headers) as r:
                 json = await r.json()
                 nickname = json['item_list'][0]['author']['nickname']
-                unique_id = json['item_list'][0]['author']['short_id']
+                unique_id = json['item_list'][0]['author']['unique_id']
                 desc = json['item_list'][0]['desc']
                 print(nickname, unique_id, desc)
                 # 图片
@@ -33,4 +38,4 @@ async def getDouYinInfo(url):
                     return download_url, nickname, unique_id, desc, json['item_list'][0]['video']['cover']['url_list'][
                         0]
 
-# asyncio.get_event_loop().run_until_complete(getDouYinInfo2('https://v.douyin.com/NuqHsbN/'))
+# asyncio.get_event_loop().run_until_complete(getDouYinInfo('https://v.douyin.com/2aHbHS8/'))

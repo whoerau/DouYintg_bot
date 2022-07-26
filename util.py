@@ -26,7 +26,7 @@ async def run(url, name):
 
 async def downImg(session, url, filename):
     url = url.replace('-sign', '')
-    async with session.get(url, headers=headers) as r:
+    async with session.get(url, headers=headers,ssl=False) as r:
         content = await r.content.read()
         async with aiofiles.open(filename, 'wb') as f:
             await f.write(content)
