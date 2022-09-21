@@ -9,7 +9,6 @@
 # input link, output dictionary.
 
 
-import configparser
 import json
 import random
 import re
@@ -42,23 +41,8 @@ class Scraper:
         self.tiktok_api_headers = {
             'user-agent': 'com.ss.android.ugc.trill/2613 (Linux; U; Android 10; en_US; Pixel 4; Build/QQ3A.200805.001; Cronet/58.0.2991.0)'
         }
-        self.app_config = configparser.ConfigParser()
-        self.app_config.read('config.ini', encoding='utf-8')
-        self.api_config = self.app_config['Scraper']
-        # 判断是否使用代理
-        if self.api_config['Proxy_switch'] == 'True':
-            # 判断是否区别协议选择代理
-            if self.api_config['Use_different_protocols'] == 'False':
-                self.proxies = {
-                    'all': self.api_config['All']
-                }
-            else:
-                self.proxies = {
-                    'http': self.api_config['Http_proxy'],
-                    'https': self.api_config['Https_proxy'],
-                }
-        else:
-            self.proxies = None
+
+        self.proxies = None
 
     @retry(stop=stop_after_attempt(3), wait=wait_random(min=1, max=2))
     def douyin(self, original_url):
