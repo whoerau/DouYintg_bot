@@ -1,6 +1,6 @@
 #pip install pipreqs
 #pipreqs requirements.txt
-FROM python:3.10.2-slim-buster
+FROM python:3.10.7-slim-buster
 
 RUN apt-get update && apt-get -y install  gcc
 COPY . /app
