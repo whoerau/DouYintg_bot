@@ -37,5 +37,3 @@ async def getDouYinInfo(url):
                     # 最后一个参数是视频封面
                     return download_url, nickname, unique_id, desc, json['item_list'][0]['video']['cover']['url_list'][
                         0]
-
-# asyncio.get_event_loop().run_until_complete(getDouYinInfo('https://v.douyin.com/2aHbHS8/'))

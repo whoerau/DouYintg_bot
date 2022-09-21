@@ -2,21 +2,29 @@
 # -*- encoding: utf-8 -*-
 # @Author: https://github.com/Evil0ctal/
 # @Time: 2021/11/06
-# @Update: 2022/08/08
+# @Update: 2022/09/18
 # @Function:
 # 核心代码，估值1块(๑•̀ㅂ•́)و✧
 # 用于爬取Douyin/TikTok数据并以字典形式返回。
-import asyncio
-import re
+# input link, output dictionary.
+
+
+import configparser
 import json
+import random
+import re
+
 import requests
 from tenacity import *
 
 
 class Scraper:
     """
-    Scraper.douyin():抖音视频/图集解析，返回字典。
-    Scraper.tiktok():TikTok视频解析，返回字典。
+    Scraper.douyin(link):
+    输入参数为抖音视频/图集链接，完成解析后返回字典。
+
+    Scraper.tiktok(link):
+    输入参数为TikTok视频/图集链接，完成解析后返回字典。
     """
 
     def __init__(self):
@@ -31,8 +39,26 @@ class Scraper:
             "Host": "www.tiktok.com",
             "User-Agent": "Mozilla/5.0  (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) coc_coc_browser/86.0.170 Chrome/80.0.3987.170 Safari/537.36",
         }
-
-        self.proxies = None
+        self.tiktok_api_headers = {
+            'user-agent': 'com.ss.android.ugc.trill/2613 (Linux; U; Android 10; en_US; Pixel 4; Build/QQ3A.200805.001; Cronet/58.0.2991.0)'
+        }
+        self.app_config = configparser.ConfigParser()
+        self.app_config.read('config.ini', encoding='utf-8')
+        self.api_config = self.app_config['Scraper']
+        # 判断是否使用代理
+        if self.api_config['Proxy_switch'] == 'True':
+            # 判断是否区别协议选择代理
+            if self.api_config['Use_different_protocols'] == 'False':
+                self.proxies = {
+                    'all': self.api_config['All']
+                }
+            else:
+                self.proxies = {
+                    'http': self.api_config['Http_proxy'],
+                    'https': self.api_config['Https_proxy'],
+                }
+        else:
+            self.proxies = None
 
     @retry(stop=stop_after_attempt(3), wait=wait_random(min=1, max=2))
     def douyin(self, original_url):
@@ -57,7 +83,8 @@ class Scraper:
                     long_url = r.headers['Location']
                     # 判断是否为个人主页链接
                     if 'user' in long_url:
-                        return {'status': 'failed', 'reason': '暂不支持个人主页批量解析', 'function': 'Scraper.douyin()',
+                        return {'status': 'failed', 'reason': '暂不支持个人主页批量解析',
+                                'function': 'Scraper.douyin()',
                                 'value': original_url}
                 except:
                     # 报错后判断为长链接，直接截取视频id
@@ -78,6 +105,15 @@ class Scraper:
                 print("正在请求抖音API链接: " + '\n' + api_url)
                 # 将回执以JSON格式处理
                 js = json.loads(requests.get(url=api_url, headers=headers, proxies=self.proxies).text)
+                aweme_id = str(js['item_list'][0]['aweme_id'])
+                share_url = re.sub("/\\?.*", "", js['item_list'][0]['share_url'])
+                if share_url is None:
+                    share_url = (
+                                "https://www.iesdouyin.com/share/video/" + aweme_id) if aweme_id is not None else original_url;
+                try:
+                    music_share_url = "https://www.iesdouyin.com/share/music/" + str(js['item_list'][0]['music']['mid'])
+                except:
+                    music_share_url = None
                 # 判断是否为图集
                 if js['item_list'][0]['images'] is not None:
                     print("类型 = 图集")
@@ -100,7 +136,8 @@ class Scraper:
                     for key in js['item_list'][0]:
                         if key == 'music':
                             # 图集BGM链接
-                            album_music = str(js['item_list'][0]['music']['play_url']['url_list'][0])
+                            album_music = str(js['item_list'][0]['music']['play_url']['url_list'][0] if len(
+                                js['item_list'][0]['music']['play_url']['url_list']) > 0 else 'No BGM found')
                             # 图集BGM标题
                             album_music_title = str(js['item_list'][0]['music']['title'])
                             # 图集BGM作者
@@ -109,6 +146,7 @@ class Scraper:
                             album_music_id = str(js['item_list'][0]['music']['id'])
                             # 图集BGM MID
                             album_music_mid = str(js['item_list'][0]['music']['mid'])
+                            break;
                         else:
                             # 图集BGM链接
                             album_music = album_music_title = album_music_author = album_music_id = album_music_mid = 'No BGM found '
@@ -142,6 +180,8 @@ class Scraper:
                                   'url_type': url_type,
                                   'platform': 'douyin',
                                   'original_url': original_url,
+                                  'share_url': share_url,
+                                  'music_share_url': music_share_url,
                                   'api_url': api_url,
                                   'album_aweme_id': album_aweme_id,
                                   'album_title': album_title,
@@ -213,6 +253,7 @@ class Scraper:
                             video_music_id = str(js['item_list'][0]['music']['id'])
                             # 视频BGM MID
                             video_music_mid = str(js['item_list'][0]['music']['mid'])
+                            break;
                         else:
                             video_music = video_music_title = video_music_author = video_music_id = video_music_mid = 'No BGM found'
                     # 视频ID
@@ -247,6 +288,8 @@ class Scraper:
                                   'url_type': url_type,
                                   'platform': 'douyin',
                                   'original_url': original_url,
+                                  'share_url': share_url,
+                                  'music_share_url': music_share_url,
                                   'api_url': api_url,
                                   'video_title': video_title,
                                   'nwm_video_url': video_url,
@@ -288,7 +331,6 @@ class Scraper:
         start = time.time()
         # 校验TikTok链接
         if '@' in original_url:
-            original_url = original_url
             print("目标链接: ", original_url)
         else:
             # 从请求头中获取原始链接
@@ -304,10 +346,10 @@ class Scraper:
             # 获取视频ID
             video_id = re.findall('/video/(\d+)?', original_url)[0]
             print('获取到的TikTok视频ID是{}'.format(video_id))
-            # 尝试从TikTok网页获取部分视频数据，失败后判断为图集
+            # 尝试从TikTok网页获取部分视频数据
             try:
                 tiktok_headers = self.tiktok_headers
-                html = requests.get(url=original_url, headers=tiktok_headers, proxies=self.proxies)
+                html = requests.get(url=original_url, headers=tiktok_headers, proxies=self.proxies, timeout=1)
                 # 正则检索网页中存在的JSON信息
                 resp = re.search('"ItemModule":{(.*)},"UserModule":', html.text).group(1)
                 resp_info = ('{"ItemModule":{' + resp + '}}')
@@ -316,51 +358,56 @@ class Scraper:
                 video_info = result["ItemModule"][video_id]
             except:
                 video_info = None
-            # 从TikTok官方API获取部分视频数据
-            tiktok_api_link = 'https://api.tiktokv.com/aweme/v1/aweme/detail/?aweme_id={}'.format(
-                video_id)
+            # 准备API参数
+            openudid = ''.join(random.sample('0123456789abcdef',16))
+            uuid = ''.join(random.sample('01234567890123456',16))
+            ts = int(time.time())
+            # 构建API链接
+            tiktok_api_link = 'https://api-h2.tiktokv.com/aweme/v1/feed/?aweme_id={}&version_name=26.1.3&version_code=2613&build_number=26.1.3&manifest_version_code=2613&update_version_code=2613&openudid={}&uuid={}&_rticket={}&ts={}&device_brand=Google&device_type=Pixel%204&device_platform=android&resolution=1080*1920&dpi=420&os_version=10&os_api=29&carrier_region=US&sys_region=US%C2%AEion=US&app_name=trill&app_language=en&language=en&timezone_name=America/New_York&timezone_offset=-14400&channel=googleplay&ac=wifi&mcc_mnc=310260&is_my_cn=0&aid=1180&ssmix=a&as=a1qwert123&cp=cbfhckdckkde1'.format(
+                video_id, openudid, uuid, ts*1000, ts)
             print('正在请求API链接:{}'.format(tiktok_api_link))
-            response = requests.get(url=tiktok_api_link, headers=headers, proxies=self.proxies).text
+            response = requests.get(url=tiktok_api_link, headers=self.tiktok_api_headers, proxies=self.proxies).text
             # 将API获取到的内容格式化为JSON
             result = json.loads(response)
+            # print(result)
             if 'image_post_info' in response:
                 # 判断链接是图集链接
                 url_type = 'album'
-                print('类型为图集')
+                print('类型为图集/type album')
                 # 视频标题
-                album_title = result["aweme_detail"]["desc"]
+                album_title = result["aweme_list"][0]["desc"]
                 # 视频作者昵称
-                album_author_nickname = result["aweme_detail"]['author']["nickname"]
+                album_author_nickname = result["aweme_list"][0]['author']["nickname"]
                 # 视频作者ID
-                album_author_id = result["aweme_detail"]['author']["unique_id"]
+                album_author_id = result["aweme_list"][0]['author']["unique_id"]
                 # 上传时间戳
-                album_create_time = result["aweme_detail"]['create_time']
+                album_create_time = result["aweme_list"][0]['create_time']
                 # 视频ID
-                album_aweme_id = result["aweme_detail"]['statistics']['aweme_id']
+                album_aweme_id = result["aweme_list"][0]['statistics']['aweme_id']
                 try:
                     # 视频BGM标题
-                    album_music_title = result["aweme_detail"]['music']['title']
+                    album_music_title = result["aweme_list"][0]['music']['title']
                     # 视频BGM作者
-                    album_music_author = result["aweme_detail"]['music']['author']
+                    album_music_author = result["aweme_list"][0]['music']['author']
                     # 视频BGM ID
-                    album_music_id = result["aweme_detail"]['music']['id']
+                    album_music_id = result["aweme_list"][0]['music']['id']
                     # 视频BGM链接
-                    album_music_url = result["aweme_detail"]['music']['play_url']['url_list'][0]
+                    album_music_url = result["aweme_list"][0]['music']['play_url']['url_list'][0]
                 except:
                     album_music_title, album_music_author, album_music_id, album_music_url = "None", "None", "None", "None"
                 # 评论数量
-                album_comment_count = result["aweme_detail"]['statistics']['comment_count']
+                album_comment_count = result["aweme_list"][0]['statistics']['comment_count']
                 # 获赞数量
-                album_digg_count = result["aweme_detail"]['statistics']['digg_count']
+                album_digg_count = result["aweme_list"][0]['statistics']['digg_count']
                 # 播放次数
-                album_play_count = result["aweme_detail"]['statistics']['play_count']
+                album_play_count = result["aweme_list"][0]['statistics']['play_count']
                 # 下载次数
-                album_download_count = result["aweme_detail"]['statistics']['download_count']
+                album_download_count = result["aweme_list"][0]['statistics']['download_count']
                 # 分享次数
-                album_share_count = result["aweme_detail"]['statistics']['share_count']
+                album_share_count = result["aweme_list"][0]['statistics']['share_count']
                 # 无水印图集
                 album_list = []
-                for i in result["aweme_detail"]['image_post_info']['images']:
+                for i in result["aweme_list"][0]['image_post_info']['images']:
                     album_list.append(i['display_image']['url_list'][0])
                 # 结束时间
                 end = time.time()
@@ -394,55 +441,55 @@ class Scraper:
             else:
                 # 类型为视频
                 url_type = 'video'
-                print('类型为视频')
+                print('类型为视频/type video')
                 # 无水印视频链接
-                nwm_video_url = result["aweme_detail"]["video"]["play_addr"]["url_list"][0]
+                nwm_video_url = result["aweme_list"][0]["video"]["play_addr"]["url_list"][0]
                 try:
                     # 有水印视频链接
-                    wm_video_url = result["aweme_detail"]["video"]['download_addr']['url_list'][0]
+                    wm_video_url = result["aweme_list"][0]["video"]['download_addr']['url_list'][0]
                 except Exception:
                     # 有水印视频链接
                     wm_video_url = 'None'
                 # 视频标题
-                video_title = result["aweme_detail"]["desc"]
+                video_title = result["aweme_list"][0]["desc"]
                 # 视频作者昵称
-                video_author_nickname = result["aweme_detail"]['author']["nickname"]
+                video_author_nickname = result["aweme_list"][0]['author']["nickname"]
                 # 视频作者ID
-                video_author_id = result["aweme_detail"]['author']["unique_id"]
+                video_author_id = result["aweme_list"][0]['author']["unique_id"]
                 # 上传时间戳
-                video_create_time = result["aweme_detail"]['create_time']
+                video_create_time = result["aweme_list"][0]['create_time']
                 # 视频ID
-                video_aweme_id = result["aweme_detail"]['statistics']['aweme_id']
+                video_aweme_id = result["aweme_list"][0]['statistics']['aweme_id']
                 try:
                     # 视频BGM标题
-                    video_music_title = result["aweme_detail"]['music']['title']
+                    video_music_title = result["aweme_list"][0]['music']['title']
                     # 视频BGM作者
-                    video_music_author = result["aweme_detail"]['music']['author']
+                    video_music_author = result["aweme_list"][0]['music']['author']
                     # 视频BGM ID
-                    video_music_id = result["aweme_detail"]['music']['id']
+                    video_music_id = result["aweme_list"][0]['music']['id']
                     # 视频BGM链接
-                    video_music_url = result["aweme_detail"]['music']['play_url']['url_list'][0]
+                    video_music_url = result["aweme_list"][0]['music']['play_url']['url_list'][0]
                 except:
                     video_music_title, video_music_author, video_music_id, video_music_url = "None", "None", "None", "None"
                 # 评论数量
-                video_comment_count = result["aweme_detail"]['statistics']['comment_count']
+                video_comment_count = result["aweme_list"][0]['statistics']['comment_count']
                 # 获赞数量
-                video_digg_count = result["aweme_detail"]['statistics']['digg_count']
+                video_digg_count = result["aweme_list"][0]['statistics']['digg_count']
                 # 播放次数
-                video_play_count = result["aweme_detail"]['statistics']['play_count']
+                video_play_count = result["aweme_list"][0]['statistics']['play_count']
                 # 下载次数
-                video_download_count = result["aweme_detail"]['statistics']['download_count']
+                video_download_count = result["aweme_list"][0]['statistics']['download_count']
                 # 分享次数
-                video_share_count = result["aweme_detail"]['statistics']['share_count']
+                video_share_count = result["aweme_list"][0]['statistics']['share_count']
                 # 视频封面
-                video_cover = result["aweme_detail"]['video']['cover']['url_list'][0]
+                video_cover = result["aweme_list"][0]['video']['cover']['url_list'][0]
                 # 视频动态封面
-                video_dynamic_cover = result["aweme_detail"]['video']['dynamic_cover']['url_list'][0]
+                video_dynamic_cover = result["aweme_list"][0]['video']['dynamic_cover']['url_list'][0]
                 # 视频原始封面
-                video_origin_cover = result["aweme_detail"]['video']['origin_cover']['url_list'][0]
+                video_origin_cover = result["aweme_list"][0]['video']['origin_cover']['url_list'][0]
                 # 将话题保存在列表中
                 video_hashtags = []
-                for tag in result["aweme_detail"]['text_extra']:
+                for tag in result["aweme_list"][0]['text_extra']:
                     if 'hashtag_name' in tag:
                         video_hashtags.append(tag['hashtag_name'])
                     else:
@@ -512,17 +559,19 @@ class Scraper:
             # 异常捕获
             return {'status': 'failed', 'reason': e, 'function': 'Scraper.tiktok()', 'value': original_url}
 
-async def tit2():
+
+if __name__ == '__main__':
+    # 测试类
     scraper = Scraper()
-    tiktok_date = await scraper.tiktok('https://vm.tiktok.com/ZMNWNBdpC/')
-    if tiktok_date.get('status') == 'success' and tiktok_date.get('url_type') == 'video':
-        nwm_video_url = tiktok_date.get('nwm_video_url')
-        video_aweme_id = tiktok_date.get('video_aweme_id')
-        print('无水印地址：', nwm_video_url)
-        # await util.run(nwm_video_url, video_aweme_id + '.mp4')
-    if tiktok_date.get('status') == 'success' and tiktok_date.get('url_type') == 'album':
-        album_list = tiktok_date.get('album_list')
-        # jpgFiles = await util.downImages(album_list)
-
-
-# asyncio.get_event_loop().run_until_complete(tit2())
+    while True:
+        url = re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',
+                         input("Enter your Douyin/TikTok url here to test: "))[0]
+        try:
+            if 'douyin.com' in url:
+                douyin_date = scraper.douyin(url)
+                print(douyin_date)
+            else:
+                tiktok_date = scraper.tiktok(url)
+                print(tiktok_date)
+        except Exception as e:
+            print("Error: " + str(e))

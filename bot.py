@@ -42,26 +42,14 @@ pattern = re.compile(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9
 @bot.on(events.NewMessage)
 async def echo_all(event):
     text = event.text
-    if event.is_group:
-        print("group")
-        await event.client.send_message(event.chat_id,
-                                        '为了防止群聊的权限问题，请私聊机器人发送链接...')
-    elif event.is_channel:
-        if not event.chat.broadcast:
-            print("group")
-        else:
-            print("channel")
-    elif event.is_private:
-        print("private")
+
+    if event.is_private:
         if 'v.douyin' in text:
             print(str(datetime.datetime.now()) + ':' + text)
             await handleDouYin(event, text)
         elif 'tiktok' in text:
             print(str(datetime.datetime.now()) + ':' + text)
             await handTiktok(event, text)
-    else:
-        print("None")
-
 
 # 进度回调
 def callback(current, total):
