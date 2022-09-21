@@ -24,6 +24,8 @@ async def getDouYinInfo(url):
                 json = await r.json()
                 nickname = json['item_list'][0]['author']['nickname']
                 unique_id = json['item_list'][0]['author']['unique_id']
+                if unique_id == '':
+                    unique_id = json['item_list'][0]['author']['short_id']
                 desc = json['item_list'][0]['desc']
                 print(nickname, unique_id, desc)
                 # 图片
@@ -37,3 +39,7 @@ async def getDouYinInfo(url):
                     # 最后一个参数是视频封面
                     return download_url, nickname, unique_id, desc, json['item_list'][0]['video']['cover']['url_list'][
                         0]
+
+
+# asyncio.get_event_loop().run_until_complete(getDouYinInfo('https://v.douyin.com/69KYYQ9/'))
+# asyncio.get_event_loop().run_until_complete(getDouYinInfo('https://v.douyin.com/69wuFuu/'))
