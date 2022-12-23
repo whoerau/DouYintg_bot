@@ -1,5 +1,6 @@
 #pip install pipreqs
 #pipreqs requirements.txt
+# docker build -t jwstar/douyintgbot .
 FROM python:3.10.7-slim-buster
 
 RUN apt-get update && apt-get -y install  gcc
