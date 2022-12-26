@@ -15,7 +15,7 @@ class Douyin:
             async with session.get(share_url, headers=self.headers) as r:
                 url = r.url
                 # 请求真实地址
-                url = f'https://www.iesdouyin.com/aweme/v1/web/aweme/detail/?aweme_id={url.parts[3]}'
+                url = f'https://www.iesdouyin.com/aweme/v1/web/aweme/detail/?aweme_id={url.parts[3]}&aid=1128&version_name=23.5.0&device_platform=android&os_version=2333&words=FXXK_U_ByteDance'
                 async with session.get(url, headers=self.headers) as r:
                     json = await r.json()
                     list_ = json['aweme_detail']
@@ -35,8 +35,8 @@ class Douyin:
                         download_url = list_['video']['play_addr']['url_list'][0].replace('wm', '')
                         # 最后一个参数是视频封面
                         return download_url, nickname, unique_id, desc, \
-                               list_['video']['cover']['url_list'][
-                                   0]
+                            list_['video']['cover']['url_list'][
+                                0]
 
 
 if __name__ == '__main__':

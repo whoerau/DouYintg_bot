@@ -5,4 +5,4 @@ tenacity
 aiohttp
 aiofiles
 requests
-orjson
+yt_dlp
