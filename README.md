@@ -2,7 +2,7 @@
 
 简单的无水印抖音、Toktik视频图文异步下载电报机器人
 
-2022/12/26 增加 yt_dlp 配合aria2 ,支持更多视频解析
+2022/12/26 增加 yt_dlp 配合aria2 ,支持更多视频解析（支持的网站：https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md ）
 
 2022/07/09 优化抖音号可点击复制功能、自动转发群组功能
 
