@@ -34,7 +34,6 @@ async def send_welcome(event):
 captionTemplate = '''标题: %s
 '''
 
-
 pattern = re.compile(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')  # 匹配模式
 
 
@@ -65,11 +64,11 @@ async def hand_Yt(event, text):
         msg3 = await event.reply('下载完成，正在上传...')
         # 发送视频
         img_path = pat.replace('mp4', 'jpg')
+        exists_img = os.path.exists(img_path)
         msg = await event.client.send_file(event.chat_id,
                                            pat,
                                            supports_streaming=True,
-                                           thumb=img_path if os.path.exists(
-                                               img_path) else None,
+                                           thumb=img_path if exists_img else None,
                                            caption=title,
                                            reply_to=event.id,
                                            # buttons=buttons,
@@ -84,7 +83,10 @@ async def hand_Yt(event, text):
         return
     finally:
         # 清理垃圾文件
-        os.remove(pat)
+        if os.path.exists(pat):
+            os.remove(pat)
+        if exists_img:
+            os.remove(img_path)
 
     await msg3.delete()
 
