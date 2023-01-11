@@ -44,6 +44,13 @@ BOT_TOKEN: 5161622943:AAEQwISVYsatw_5UcC6MIs8GtmrlokdYeyY
 docker-compose up 
 ```
 
+### 测试
+
+1. 直接发送链接给机器人
+2. 拉取机器人到群 /dl 文字链接 ,测试下载
+
+
+
 查看日志
 
 ```
