@@ -9,6 +9,7 @@ from telethon import TelegramClient, events
 
 import util
 from adapter import douyin
+from adapter.kuaishou import get_kuaishou_info
 from adapter.yt import download
 
 # ======================需要设置====================================================
@@ -27,14 +28,29 @@ bot = TelegramClient(None, API_ID, API_HASH,
 
 @bot.on(events.NewMessage(pattern='/start'))
 async def send_welcome(event):
-    await event.client.send_message(event.chat_id, '向我发送抖音、Tiktok、推特、ins、微博等视频的分享链接,下载无水印视频,有问题请留言  '
-                                                   'Send me sharing links of Douyin, Tiktok, Twitter, ins, Weibo and other videos, download videos without watermarks, please leave a message if you have any questions')
+    await event.client.send_message(event.chat_id,
+                                    '向我发送抖音、Tiktok、推特、ins、微博等视频的分享链接,下载无水印视频,有问题请留言,将机器人拉入群组, /dl 链接文字 ,可以在群组中使用  '
+                                    'Send me sharing links of Douyin, Tiktok, Twitter, ins, Weibo and other videos, download videos without watermarks, please leave a message if you have any questions')
 
 
 captionTemplate = '''标题: %s
 '''
 
 pattern = re.compile(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')  # 匹配模式
+
+
+@bot.on(events.NewMessage(pattern='/dl'))
+async def dl(event):
+    text = event.text
+    print(str(datetime.datetime.now()) + ':' + text)
+    if 'v.douyin' in text:
+        await handleDouYin(event, text)
+    elif 'kuaishou' in text:
+        await handleKuaiShou(event, text)
+        return
+    elif 'http' in text:
+        # 最后尝试用yt_dlp 下载
+        await hand_Yt(event, text)
 
 
 @bot.on(events.NewMessage)
@@ -45,9 +61,44 @@ async def echo_all(event):
         print(str(datetime.datetime.now()) + ':' + text)
         if 'v.douyin' in text:
             await handleDouYin(event, text)
+        elif 'kuaishou' in text:
+            await handleKuaiShou(event, text)
+            return
         elif 'http' in text:
             # 最后尝试用yt_dlp 下载
             await hand_Yt(event, text)
+
+
+async def handleKuaiShou(event, text):
+    msg1 = await event.client.send_message(event.chat_id,
+                                           '正在下载...')
+
+    msg2 = await event.client.send_message(event.chat_id,
+                                           '🤞')
+    url = re.findall(pattern, text)[0]
+
+    video_url, desc = get_kuaishou_info(url)
+
+    uuidstr = str(uuid.uuid4())
+    filename = uuidstr + '.mp4'
+
+    # 下载视频
+    await util.run(video_url, filename)
+    # 发送视频
+    msg = await event.client.send_file(event.chat_id,
+                                       filename,
+                                       supports_streaming=True,
+                                       caption=captionTemplate % (
+                                           desc),
+                                       parse_mode='html',
+                                       reply_to=event.id,
+                                       progress_callback=callback
+                                       )
+    await bot.forward_messages(CHANNEL_ID, msg)
+    if os.path.exists(filename):
+        os.remove(filename)
+    await msg1.delete()
+    await msg2.delete()
 
 
 async def hand_Yt(event, text):

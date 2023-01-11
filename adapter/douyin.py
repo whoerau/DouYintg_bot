@@ -41,6 +41,6 @@ class Douyin:
 
 if __name__ == '__main__':
     dou = Douyin()
-    asyncio.get_event_loop().run_until_complete(dou.get_douyin_info('https://v.douyin.com/hgGSAep/'))
+    asyncio.get_event_loop().run_until_complete(dou.get_douyin_info(' '))
 # asyncio.get_event_loop().run_until_complete(getDouYinInfo('https://v.douyin.com/69KYYQ9/'))
 # asyncio.get_event_loop().run_until_complete(getDouYinInfo('https://v.douyin.com/69wuFuu/'))
