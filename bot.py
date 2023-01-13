@@ -39,19 +39,6 @@ captionTemplate = '''标题: %s
 pattern = re.compile(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')  # 匹配模式
 
 
-@bot.on(events.NewMessage(pattern='/dl'))
-async def dl(event):
-    text = event.text
-    print(str(datetime.datetime.now()) + ':' + text)
-    if 'v.douyin' in text:
-        await handleDouYin(event, text)
-    elif 'kuaishou' in text:
-        await handleKuaiShou(event, text)
-        return
-    elif 'http' in text:
-        # 最后尝试用yt_dlp 下载
-        await hand_Yt(event, text)
-
 
 @bot.on(events.NewMessage)
 async def echo_all(event):
@@ -67,6 +54,17 @@ async def echo_all(event):
         elif 'http' in text:
             # 最后尝试用yt_dlp 下载
             await hand_Yt(event, text)
+    else:
+        if text.startswith('/dl'):
+            print(str(datetime.datetime.now()) + ':' + text)
+            if 'v.douyin' in text:
+                await handleDouYin(event, text)
+            elif 'kuaishou' in text:
+                await handleKuaiShou(event, text)
+                return
+            elif 'http' in text:
+                # 最后尝试用yt_dlp 下载
+                await hand_Yt(event, text)
 
 
 async def handleKuaiShou(event, text):
