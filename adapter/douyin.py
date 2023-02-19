@@ -2,6 +2,8 @@ import asyncio
 
 import aiohttp
 
+from tenacity import retry, stop_after_attempt, wait_fixed
+
 
 class Douyin:
     def __init__(self):
@@ -9,6 +11,7 @@ class Douyin:
             'User-Agent': "Mozilla/5.0 (Linux; Android 8.0; Pixel 2 Build/OPD3.170816.012) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Mobile Safari/537.36 Edg/87.0.664.66"
         }
 
+    @retry(stop=stop_after_attempt(4), wait=wait_fixed(7))
     async def get_douyin_info(self, url):
         share_url = url
         async with aiohttp.ClientSession() as session:
@@ -41,6 +44,6 @@ class Douyin:
 
 if __name__ == '__main__':
     dou = Douyin()
-    asyncio.get_event_loop().run_until_complete(dou.get_douyin_info(' '))
+    asyncio.get_event_loop().run_until_complete(dou.get_douyin_info('https://v.douyin.com/BtW4moT/'))
 # asyncio.get_event_loop().run_until_complete(getDouYinInfo('https://v.douyin.com/69KYYQ9/'))
 # asyncio.get_event_loop().run_until_complete(getDouYinInfo('https://v.douyin.com/69wuFuu/'))
