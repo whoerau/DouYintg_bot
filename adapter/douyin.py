@@ -1,4 +1,5 @@
 import asyncio
+from urllib.parse import quote
 
 import aiohttp
 
@@ -8,10 +9,13 @@ from tenacity import retry, stop_after_attempt, wait_fixed
 class Douyin:
     def __init__(self):
         self.headers = {
-            'User-Agent': "Mozilla/5.0 (Linux; Android 8.0; Pixel 2 Build/OPD3.170816.012) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Mobile Safari/537.36 Edg/87.0.664.66"
+            'User-Agent': "Mozilla/5.0 (Linux; Android 8.0; Pixel 2 Build/OPD3.170816.012) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Mobile Safari/537.36 Edg/87.0.664.66",
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'Referer': 'https://www.fodownloader.com/douyin-video-downloader',
+            'X-requested-with': 'XMLHttpRequest',
         }
 
-    @retry(stop=stop_after_attempt(4), wait=wait_fixed(7))
+    # @retry(stop=stop_after_attempt(4), wait=wait_fixed(7))
     async def get_douyin_info(self, url):
         share_url = url
         async with aiohttp.ClientSession() as session:
@@ -41,9 +45,20 @@ class Douyin:
                             list_['video']['cover']['url_list'][
                                 0]
 
+    async def get_douyin_info2(self, url):
+        async with aiohttp.ClientSession() as session:
+            # url编码后拼接
+            text = quote(url, 'utf-8')
+            url = f'https://www.fodownloader.com/csgeturl?urlInfo={text}&lang=zh-cn'
+            print(url)
+            async with session.get(url, headers=self.headers) as r:
+                print(r.status)
+                text = await r.text()
+                print(text)
+
 
 if __name__ == '__main__':
     dou = Douyin()
-    asyncio.get_event_loop().run_until_complete(dou.get_douyin_info('https://v.douyin.com/BtW4moT/'))
+    asyncio.get_event_loop().run_until_complete(dou.get_douyin_info2('https://v.douyin.com/SLN1hCq/'))
 # asyncio.get_event_loop().run_until_complete(getDouYinInfo('https://v.douyin.com/69KYYQ9/'))
 # asyncio.get_event_loop().run_until_complete(getDouYinInfo('https://v.douyin.com/69wuFuu/'))

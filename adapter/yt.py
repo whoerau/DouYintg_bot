@@ -33,9 +33,10 @@ def download(url: str):
 
     return path.join("downloads", f"{info['id']}.{info['ext']}"), info['title']
 
-#
-# try:
-#     pat, title = download('https://twitter.com/SpokespersonCHN/status/1606958052577624064')
-#     print(pat, title)
-# except Exception as ep:
-#     print(ep.msg)
+if __name__ == '__main__':
+
+    try:
+        pat, title = download('https://v.douyin.com/SLN1hCq/')
+        print(pat, title)
+    except Exception as ep:
+        print(ep.msg)
