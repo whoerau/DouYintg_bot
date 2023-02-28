@@ -8,7 +8,6 @@ import uuid
 from telethon import TelegramClient, events
 
 import util
-from adapter import douyin
 from adapter.kuaishou import get_kuaishou_info
 from adapter.yt import download
 
@@ -37,7 +36,6 @@ captionTemplate = '''标题: %s
 '''
 
 pattern = re.compile(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')  # 匹配模式
-
 
 
 @bot.on(events.NewMessage)
@@ -153,15 +151,13 @@ async def handleDouYin(event, text):
 
     msg2 = await event.client.send_message(event.chat_id,
                                            '🤞')
-
-    do = douyin.Douyin()
-    info = await do.get_douyin_info(urls[0])
-    if isinstance(info[0], list):
-        jpgFiles = await util.downImages(info[0])
+    video_url, desc = get_kuaishou_info(urls[0])
+    if isinstance(video_url, list):
+        jpgFiles = await util.downImages(video_url)
         msg = await event.client.send_file(event.chat_id,
                                            jpgFiles,
                                            caption=captionTemplate % (
-                                               info[3]),
+                                               desc),
                                            reply_to=event.id,
                                            parse_mode='html',
                                            progress_callback=callback
@@ -170,30 +166,24 @@ async def handleDouYin(event, text):
 
         for jpgFile in jpgFiles:
             os.remove(jpgFile)
-
     else:
         uuidstr = str(uuid.uuid4())
         filename = uuidstr + '.mp4'
-        cover = uuidstr + '.jpg'
-        # 下载视频
-        await util.run(info[0], filename)
-        # 下载封面
-        await util.run(info[4], cover)
+        await util.run(video_url, filename)
 
         # 发送视频
         msg = await event.client.send_file(event.chat_id,
                                            filename,
                                            supports_streaming=True,
-                                           thumb=cover,
                                            caption=captionTemplate % (
-                                               info[3]),
+                                               desc),
                                            parse_mode='html',
                                            reply_to=event.id,
                                            progress_callback=callback
                                            )
-        await bot.forward_messages(CHANNEL_ID, msg)
         os.remove(filename)
-        os.remove(cover)
+        await bot.forward_messages(CHANNEL_ID, msg)
+
     await msg1.delete()
     await msg2.delete()
 
