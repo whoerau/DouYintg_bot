@@ -26,11 +26,25 @@ async def run(url, name):
 
 async def downImg(session, url, filename):
     url = url.replace('-sign', '')
-    async with session.get(url, headers=headers,ssl=False) as r:
+    async with session.get(url, headers=headers, ssl=False) as r:
         content = await r.content.read()
         async with aiofiles.open(filename, 'wb') as f:
             await f.write(content)
         print("\r", '任务文件 ', filename, ' 下载成功', end="", flush=True)
+
+
+async def imgCoverFromFile(input, output):
+    # ffmpeg -i 001.jpg -vf 'scale=320:320'  001_1.jpg
+    command = ''' ffmpeg -i "%s" -y -vframes 1   "%s" ''' % (
+        input, output)
+    proc = await asyncio.create_subprocess_shell(
+        command,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE)
+
+    stdout, stderr = await proc.communicate()
+
+    print(f'[{command!r} exited with {proc.returncode}]')
 
 
 # 下载图片

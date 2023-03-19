@@ -69,8 +69,6 @@ async def handleKuaiShou(event, text):
     msg1 = await event.client.send_message(event.chat_id,
                                            '正在下载...')
 
-    msg2 = await event.client.send_message(event.chat_id,
-                                           '🤞')
     url = re.findall(pattern, text)[0]
 
     video_url, desc = get_kuaishou_info(url)
@@ -80,10 +78,13 @@ async def handleKuaiShou(event, text):
 
     # 下载视频
     await util.run(video_url, filename)
+
+    await util.imgCoverFromFile(filename, f'{filename}.jpg')
     # 发送视频
     msg = await event.client.send_file(event.chat_id,
                                        filename,
                                        supports_streaming=True,
+                                       thumb=f'{filename}.jpg',
                                        caption=captionTemplate % (
                                            desc),
                                        parse_mode='html',
@@ -94,20 +95,16 @@ async def handleKuaiShou(event, text):
     if os.path.exists(filename):
         os.remove(filename)
     await msg1.delete()
-    await msg2.delete()
 
 
 async def hand_Yt(event, text):
     msg1 = await event.client.send_message(event.chat_id,
                                            '正在下载...')
 
-    msg2 = await event.client.send_message(event.chat_id,
-                                           '🤞')
     url = re.findall(pattern, text)[0]
     try:
         pat, title = download(url)
         await msg1.delete()
-        await msg2.delete()
         msg3 = await event.reply('下载完成，正在上传...')
         # 发送视频
         img_path = pat.replace('mp4', 'jpg')
@@ -149,8 +146,6 @@ async def handleDouYin(event, text):
     msg1 = await event.client.send_message(event.chat_id,
                                            '正在下载...')
 
-    msg2 = await event.client.send_message(event.chat_id,
-                                           '🤞')
     video_url, desc = get_kuaishou_info(urls[0])
     if isinstance(video_url, list):
         jpgFiles = await util.downImages(video_url)
@@ -170,11 +165,12 @@ async def handleDouYin(event, text):
         uuidstr = str(uuid.uuid4())
         filename = uuidstr + '.mp4'
         await util.run(video_url, filename)
-
+        await util.imgCoverFromFile(filename, f'{filename}.jpg')
         # 发送视频
         msg = await event.client.send_file(event.chat_id,
                                            filename,
                                            supports_streaming=True,
+                                           thumb=f'{filename}.jpg',
                                            caption=captionTemplate % (
                                                desc),
                                            parse_mode='html',
@@ -185,7 +181,6 @@ async def handleDouYin(event, text):
         await bot.forward_messages(CHANNEL_ID, msg)
 
     await msg1.delete()
-    await msg2.delete()
 
 
 #  title:
