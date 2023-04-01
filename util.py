@@ -6,8 +6,8 @@ from tenacity import retry, stop_after_attempt, wait_fixed
 
 headers = {
     'accept-language': 'zh-CN,zh;q=0.9',
-    'cache-control': 'max-age=0',
-    'User-Agent': "Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1"}
+    'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"
+}
 
 
 # 下载视频
@@ -24,15 +24,6 @@ async def run(url, name):
                 print("\r", '任务文件 ', name, ' 下载成功', end="", flush=True)
 
 
-async def downImg(session, url, filename):
-    url = url.replace('-sign', '')
-    async with session.get(url, headers=headers, ssl=False) as r:
-        content = await r.content.read()
-        async with aiofiles.open(filename, 'wb') as f:
-            await f.write(content)
-        print("\r", '任务文件 ', filename, ' 下载成功', end="", flush=True)
-
-
 async def imgCoverFromFile(input, output):
     # ffmpeg -i 001.jpg -vf 'scale=320:320'  001_1.jpg
     command = ''' ffmpeg -i "%s" -y -vframes 1   "%s" ''' % (
@@ -47,8 +38,21 @@ async def imgCoverFromFile(input, output):
     print(f'[{command!r} exited with {proc.returncode}]')
 
 
+async def downImg(session, url, filename, sem):
+    async with sem:
+        # url = url.replace('-sign', '')
+        async with session.get(url, headers=headers) as r:
+            if r.status == 403:
+                return
+            content = await r.content.read()
+            async with aiofiles.open(filename, 'wb') as f:
+                await f.write(content)
+            print("\r", '任务文件 ', filename, ' 下载成功', end="", flush=True)
+
+
 # 下载图片
 async def downImages(urls):
+    sem = asyncio.Semaphore(3)  # 控制并发数
     async with aiohttp.ClientSession(headers=headers) as session:
         tasks = []
         jpgFiles = []
@@ -56,7 +60,7 @@ async def downImages(urls):
         for url in urls:
             jpgname = str(uuid.uuid4()) + '.jpg'
             jpgFiles.append(jpgname)
-            task = asyncio.create_task(downImg(session, url, jpgname))
+            task = asyncio.create_task(downImg(session, url, jpgname, sem))
             tasks.append(task)
-        await asyncio.wait(tasks)
+        await asyncio.gather(*tasks)
         return jpgFiles

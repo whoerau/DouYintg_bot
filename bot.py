@@ -149,6 +149,9 @@ async def handleDouYin(event, text):
     video_url, desc = get_kuaishou_info(urls[0])
     if isinstance(video_url, list):
         jpgFiles = await util.downImages(video_url)
+        for jpgFile in jpgFiles:
+            if not os.path.exists(jpgFile):
+                jpgFiles.remove(jpgFile)
         msg = await event.client.send_file(event.chat_id,
                                            jpgFiles,
                                            caption=captionTemplate % (
