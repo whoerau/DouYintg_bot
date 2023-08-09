@@ -11,12 +11,15 @@ services:
     environment:
       TZ: Asia/Shanghai
       #正式
-      API_ID: 21153848
-      API_HASH: bdcad7af6ab62608af2527b4cee20bcd
-      BOT_TOKEN: 5913788955:AAEIP7M18RhAhSz2t2kCZDm31CxH19HJQFA
-      CHANNEL_ID: -1001869610242
+      API_ID: 21151111
+      API_HASH: bdcad7af6ab62608af2527b4cee21111
+      BOT_TOKEN: 5913788955:AAEIP7M18RhAhSz2t2kCZDm31CxH19HQQQQ
+      CHANNEL_ID: -1001869611111
+      DLPANDA_XHS_TOKEN: panda
+      DLPANDA_DOUYIN_TOKEN: panda_douyin
+      STAND_ALONE_CHROME: http://192.168.1.1:4444/wd/hub
 
     deploy:
       resources:
         limits:
-          cpus: '0.80'
+          cpus: '2'

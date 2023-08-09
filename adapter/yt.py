@@ -36,7 +36,7 @@ def download(url: str):
 if __name__ == '__main__':
 
     try:
-        pat, title = download('https://v.douyin.com/SLN1hCq/')
+        pat, title = download('https://cn.pornhub.com/view_video.php?viewkey=651ee30037a36')
         print(pat, title)
     except Exception as ep:
-        print(ep.msg)
+        print(ep)

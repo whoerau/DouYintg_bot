@@ -52,7 +52,7 @@ async def downImg(session, url, filename, sem):
 
 # 下载图片
 async def downImages(urls):
-    sem = asyncio.Semaphore(3)  # 控制并发数
+    sem = asyncio.Semaphore(5)  # 控制并发数
     async with aiohttp.ClientSession(headers=headers) as session:
         tasks = []
         jpgFiles = []

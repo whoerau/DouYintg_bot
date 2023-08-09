@@ -36,6 +36,10 @@ mkdir /douyin
 API_ID: 2222222222222
 API_HASH: 22222
 BOT_TOKEN: 5161622943:AAEQwISVYsatw_5UcC6MIs8GtmrlokdYeyY
+
+DLPANDA_XSH_TOKEN: panda_xhs
+DLPANDA_DOUYIN_TOKEN: panda_douyin
+STAND_ALONE_CHROME: http://192.168.1.1:4444/wd/hub
 ```
 
 ### 启动项目

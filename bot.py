@@ -8,7 +8,10 @@ import uuid
 from telethon import TelegramClient, events
 
 import util
-from adapter.kuaishou import get_kuaishou_info
+from adapter.kuaishou import get_kuaishou_info, get_kuaishou_info_via_dlpanda
+from adapter.xiaohongshu import get_xiaohongshu_info
+from adapter.instagram import get_ins_info
+from adapter.twitter import get_twitter_info
 from adapter.yt import download
 
 # ======================需要设置====================================================
@@ -45,24 +48,46 @@ async def echo_all(event):
     if event.is_private:
         print(str(datetime.datetime.now()) + ':' + text)
         if 'v.douyin' in text:
-            await handleDouYin(event, text)
+            await handle_media(event, text, get_kuaishou_info_via_dlpanda)
+            return
         elif 'kuaishou' in text:
             await handleKuaiShou(event, text)
+            return
+        elif 'xhslink' in text:
+            await handle_media(event, text, get_xiaohongshu_info)
+            return
+        elif 'instagram' in text:
+            await handle_media(event, text, get_ins_info)
+            return
+        elif "x.com" in text or "twitter.com" in text:
+            await handle_media(event, text, get_twitter_info)
             return
         elif 'http' in text:
             # 最后尝试用yt_dlp 下载
             await hand_Yt(event, text)
+            return
     else:
         if text.startswith('/dl'):
             print(str(datetime.datetime.now()) + ':' + text)
             if 'v.douyin' in text:
-                await handleDouYin(event, text)
+                await handle_media(event, text, get_kuaishou_info_via_dlpanda)
+                return
             elif 'kuaishou' in text:
                 await handleKuaiShou(event, text)
+                return
+            elif 'xhslink' in text:
+                await handle_media(event, text, get_xiaohongshu_info)
+                return
+            elif 'instagram' in text:
+                await handle_media(event, text, get_ins_info)
+                return
+            elif "x.com" in text or "twitter.com" in text:
+                await handle_media(event, text, get_twitter_info)
                 return
             elif 'http' in text:
                 # 最后尝试用yt_dlp 下载
                 await hand_Yt(event, text)
+                return
 
 
 async def handleKuaiShou(event, text):
@@ -122,8 +147,8 @@ async def hand_Yt(event, text):
         await bot.forward_messages(CHANNEL_ID, msg)
 
     except Exception as ep:
-        print(ep)
-        await event.reply(ep.msg)
+        print("exception hand_Yt", ep)
+        await event.reply(str(ep))
         return
     finally:
         # 清理垃圾文件
@@ -135,55 +160,50 @@ async def hand_Yt(event, text):
     await msg3.delete()
 
 
-def callback(current, total):
-    print("\r", '正在发送', current, 'out of', total,
-          'bytes: {:.2%}'.format(current / total), end="", flush=True)
+async def handle_media(event, text, platform_info_function):
+    urls = re.findall(pattern, text)
+    msg1 = await event.client.send_message(event.chat_id, '正在下载...')
 
-
-async def handleDouYin(event, text):
-    urls = re.findall(pattern,
-                      text)
-    msg1 = await event.client.send_message(event.chat_id,
-                                           '正在下载...')
-
-    video_url, desc = get_kuaishou_info(urls[0])
+    video_url, desc = platform_info_function(urls[0])
     if isinstance(video_url, list):
-        jpgFiles = await util.downImages(video_url)
-        for jpgFile in jpgFiles:
-            if not os.path.exists(jpgFile):
-                jpgFiles.remove(jpgFile)
-        msg = await event.client.send_file(event.chat_id,
-                                           jpgFiles,
-                                           caption=captionTemplate % (
-                                               desc),
-                                           reply_to=event.id,
-                                           parse_mode='html',
-                                           progress_callback=callback
-                                           )
+        jpg_files = await util.downImages(video_url)
+        jpg_files = [file for file in jpg_files if os.path.exists(file)]  # 过滤存在的文件
+        msg = await event.client.send_file(
+            event.chat_id,
+            jpg_files,
+            caption=captionTemplate % desc,
+            reply_to=event.id,
+            parse_mode='html',
+            progress_callback=callback
+        )
         await bot.forward_messages(CHANNEL_ID, msg)
 
-        for jpgFile in jpgFiles:
-            os.remove(jpgFile)
+        for jpg_file in jpg_files:
+            os.remove(jpg_file)
     else:
-        uuidstr = str(uuid.uuid4())
-        filename = uuidstr + '.mp4'
+        uuid_str = str(uuid.uuid4())
+        filename = uuid_str + '.mp4'
         await util.run(video_url, filename)
         await util.imgCoverFromFile(filename, f'{filename}.jpg')
-        # 发送视频
-        msg = await event.client.send_file(event.chat_id,
-                                           filename,
-                                           supports_streaming=True,
-                                           thumb=f'{filename}.jpg',
-                                           caption=captionTemplate % (
-                                               desc),
-                                           parse_mode='html',
-                                           reply_to=event.id,
-                                           progress_callback=callback
-                                           )
+        msg = await event.client.send_file(
+            event.chat_id,
+            filename,
+            supports_streaming=True,
+            thumb=f'{filename}.jpg',
+            caption=captionTemplate % desc,
+            parse_mode='html',
+            reply_to=event.id,
+            progress_callback=callback
+        )
         os.remove(filename)
         await bot.forward_messages(CHANNEL_ID, msg)
 
     await msg1.delete()
+
+
+def callback(current, total):
+    print("\r", '正在发送', current, 'out of', total,
+          'bytes: {:.2%}'.format(current / total), end="", flush=True)
 
 
 #  title:
