@@ -12,7 +12,6 @@ from adapter.kuaishou import get_kuaishou_info, get_kuaishou_info_via_dlpanda
 from adapter.xiaohongshu import get_xiaohongshu_info
 from adapter.instagram import get_ins_info
 from adapter.twitter import get_twitter_info
-from adapter.chigua import get_chigua_info
 from adapter.yt import download
 
 # ======================需要设置====================================================
@@ -64,9 +63,6 @@ async def echo_all(event):
         elif "x.com" in text or "twitter.com" in text:
             await handle_media(event, text, get_twitter_info)
             return
-        elif "qdcofn" in text or "jekbwbwe" in text or re.search(chigua_pattern, text):
-            await handle_chigua(event, text, get_chigua_info)
-            return
         elif 'http' in text:
             # 最后尝试用yt_dlp 下载
             await hand_Yt(event, text)
@@ -88,9 +84,6 @@ async def echo_all(event):
                 return
             elif "x.com" in text or "twitter.com" in text:
                 await handle_media(event, text, get_twitter_info)
-                return
-            elif "qdcofn" in text or "jekbwbwe" in text or re.search(chigua_pattern, text):
-                await handle_chigua(event, text, get_chigua_info)
                 return
             elif 'http' in text:
                 # 最后尝试用yt_dlp 下载
@@ -207,13 +200,6 @@ async def handle_media(event, text, platform_info_function):
         await bot.forward_messages(CHANNEL_ID, msg)
 
     await msg1.delete()
-
-
-async def handle_chigua(event, text, platform_info_function):
-    urls = re.findall(pattern, text)
-    video_url, desc = platform_info_function(urls[0])
-
-    await hand_Yt(event, video_url)
 
 
 def callback(current, total):
