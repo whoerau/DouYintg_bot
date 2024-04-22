@@ -60,7 +60,7 @@ def get_kuaishou_info_via_dlpanda(url):
         return video_links[0], desc
 
     # image
-    aaa = [r.span() for r in re.finditer(' alt src="', res)]
+    aaa = [r.span() for r in re.finditer('<img alt src="', res)]
     bbb = [r.span() for r in re.finditer('" width="100%"', res)]
     img_links = []
 
@@ -80,12 +80,11 @@ def get_kuaishou_info_via_dlpanda(url):
 
 async def main():
     # 测试图文
-    # video_url, desc =get_kuaishou_info('https://v.douyin.com/iJsd1kWn')
-    # jpgFiles = await util.downImages(video_url)
+    video_url, desc = get_kuaishou_info_via_dlpanda('https://v.douyin.com/i2nGuy7U/')
+    jpgFiles = await util.downImages(video_url)
 
-    video_url, desc = get_kuaishou_info_via_dlpanda('https://v.douyin.com/iJES1eRQ/')
+    # video_url, desc = get_kuaishou_info_via_dlpanda('https://v.douyin.com/i2nnAGJC')
 
 
 if __name__ == '__main__':
-    # get_kuaishou_info('https://v.kuaishou.com/EHyg3o')
     asyncio.get_event_loop().run_until_complete(main())

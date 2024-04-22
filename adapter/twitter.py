@@ -54,6 +54,16 @@ def get_twitter_info(url):
                 media_link = best_resolution_link['href']
                 best_resolution = int(best_resolution_link.text.split('x')[1])
                 print("best_resolution video :", media_link, best_resolution)
+            else:
+                print("No video link found")
+
+            # script = result_overlay.find('script', string=lambda text: text and "hdInfoLink" in text)
+            # if script:
+            #     media_link = script.string.split('hdInfoLink = "')[1].split('"')[0]
+            #     print("media_link", media_link)
+            # else:
+            #     print("hdInfoLink not found in script content")
+
         else:
             print("result overlay not found. Check if the page structure has changed.")
 
@@ -67,5 +77,6 @@ def get_twitter_info(url):
 
 
 if __name__ == '__main__':
-    url = ""
+    url = "https://x.com/paofumeizhi/status/1794044925094613331?s=46"
+    # url = "https://x.com/yarays/status/1784089243662553271?s=46"
     get_twitter_info(url)
