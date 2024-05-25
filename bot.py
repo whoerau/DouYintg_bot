@@ -45,9 +45,20 @@ pattern = re.compile(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9
 async def echo_all(event):
     text = event.text
     chigua_pattern = r'h2t.+z.+'
+    user = await event.get_sender()
+    print(
+        "chat_id:", str(event.chat_id),
+        "username:", user.username,
+        "first_name:", user.first_name,
+        "last_name:", user.last_name,
+        "access_hash:", user.access_hash,
+        "phone:", user.phone,
+        "status:", user.status,
+        "photo:", user.photo,
+        str(datetime.datetime.now()) + ':' + text
+    )
 
     if event.is_private:
-        print(str(datetime.datetime.now()) + ':' + text)
         if 'v.douyin' in text:
             await handle_media(event, text, get_kuaishou_info_via_dlpanda)
             return
@@ -69,7 +80,6 @@ async def echo_all(event):
             return
     else:
         if text.startswith('/dl'):
-            print(str(datetime.datetime.now()) + ':' + text)
             if 'v.douyin' in text:
                 await handle_media(event, text, get_kuaishou_info_via_dlpanda)
                 return
