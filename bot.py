@@ -21,6 +21,9 @@ BOT_TOKEN = os.getenv('BOT_TOKEN')
 CHANNEL_ID = int(os.getenv('CHANNEL_ID'))
 # =========================需要设置=================================================
 
+# 定义授权用户的用户名列表
+authorized_users_str = os.getenv('AUTHORIZED_USERS', '')
+AUTHORIZED_USERS = list(map(int, authorized_users_str.split(','))) if authorized_users_str else []
 
 bot = TelegramClient(None, API_ID, API_HASH,
                      # proxy=(python_socks.ProxyType.HTTP, '127.0.0.1', 10809)
@@ -30,6 +33,11 @@ bot = TelegramClient(None, API_ID, API_HASH,
 
 @bot.on(events.NewMessage(pattern='/start'))
 async def send_welcome(event):
+    if AUTHORIZED_USERS:
+        user = await event.get_sender()
+        if user.id not in AUTHORIZED_USERS:
+            return
+
     await event.client.send_message(event.chat_id,
                                     '向我发送抖音、Tiktok、推特、ins、微博等视频的分享链接,下载无水印视频,有问题请留言,将机器人拉入群组, /dl 链接文字 ,可以在群组中使用  '
                                     'Send me sharing links of Douyin, Tiktok, Twitter, ins, Weibo and other videos, download videos without watermarks, please leave a message if you have any questions')
@@ -44,8 +52,12 @@ pattern = re.compile(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9
 @bot.on(events.NewMessage)
 async def echo_all(event):
     text = event.text
-    chigua_pattern = r'h2t.+z.+'
+
     user = await event.get_sender()
+    if AUTHORIZED_USERS:
+        if user.id not in AUTHORIZED_USERS:
+            return
+
     print(
         "chat_id:", str(event.chat_id),
         "username:", user.username,
