@@ -53,6 +53,7 @@ pattern = re.compile(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9
 async def echo_all(event):
     text = event.text
 
+    # extra check sender
     user = await event.get_sender()
     if AUTHORIZED_USERS:
         if user.id not in AUTHORIZED_USERS:
