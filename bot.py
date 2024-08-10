@@ -71,7 +71,7 @@ async def echo_all(event):
     )
 
     if event.is_private:
-        if 'v.douyin' in text:
+        if 'v.douyin' in text or 'tiktok.com' in text:
             await handle_media(event, text, get_kuaishou_info_via_dlpanda)
             return
         elif 'kuaishou' in text:
@@ -92,7 +92,7 @@ async def echo_all(event):
             return
     else:
         if text.startswith('/dl'):
-            if 'v.douyin' in text:
+            if 'v.douyin' in text or 'tiktok.com' in text:
                 await handle_media(event, text, get_kuaishou_info_via_dlpanda)
                 return
             elif 'kuaishou' in text:
