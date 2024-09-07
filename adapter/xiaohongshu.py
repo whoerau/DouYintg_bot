@@ -1,19 +1,41 @@
 import asyncio
-
-import util
-
-import re
+import re, json
+import traceback
 
 from lxml import etree
-
 from adapter.dlpanda import RS
+from adapter.dlpanda import FLARESOLVERR
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from adapter.dlpanda import standalone_chrome, chrome_options
+from bs4 import BeautifulSoup
+
+
+def get_xiaohongshu_via_flare_solver(url):
+    flare_solverr = FLARESOLVERR
+    payload = json.dumps({
+        "cmd": "request.get",
+        "url": url,
+        "maxTimeout": 60000
+    })
+    headers = {
+        'Content-Type': 'application/json'
+    }
+
+    response = RS.post(flare_solverr, headers=headers, data=payload)
+    print("response from FLARESOLVERR", response.json())
+    res = response.json()['solution']['response']
+
+    return res
 
 
 def get_xiaohongshu_info(url):
     url = f'https://dlpanda.com/zh-CN/xhs?url={url}'
-    rsp = RS.get(url)
-    res = rsp.text
-    print("dlpanda rsp", rsp.status_code)
+    # rsp = RS.get(url)
+    # res = rsp.text
+    res = get_xiaohongshu_via_flare_solver(url)
 
     # desc
     selects = etree.HTML(res)
@@ -58,9 +80,61 @@ def get_xiaohongshu_info(url):
     return img_links, desc
 
 
+# def get_xiaohongshu_info2(url):
+#     driver = webdriver.Remote(
+#         command_executor=standalone_chrome,
+#         options=chrome_options
+#     )
+#     desc = ""
+#
+#     try:
+#         driver.get(url)
+#         driver.set_window_size(1920, 973)
+#
+#         WebDriverWait(driver, 10).until(
+#             EC.visibility_of_all_elements_located((By.ID, "noteContainer"))
+#         )
+#
+#         html = driver.page_source
+#         # print(html)
+#         soup = BeautifulSoup(html, 'html.parser')
+#         note_container = soup.find(id='noteContainer')
+#
+#         # get desc
+#         interaction_container = note_container.find(class_='interaction-container')
+#         detail_title = interaction_container.find(id='detail-title').text.strip()
+#         detail_desc = interaction_container.find(id='detail-desc').text.strip()
+#         desc = f"{detail_title}\n{detail_desc}"
+#
+#         # Extract all image sources within the container
+#         image_links = []
+#         slider_container = note_container.find(class_='slider-container')
+#         if slider_container:
+#             image_tags = slider_container.find_all('img')
+#             image_links = [img.get('src') for img in image_tags]
+#
+#         if len(image_links) == 0:
+#             video_container = note_container.find(class_='video-player-media media-container')
+#             video_tag = video_container.find('video')
+#             video_url = video_tag.get('src').lstrip('blob:') if video_tag else None
+#
+#             image_links.append(video_url)
+#
+#         print("image:", image_links, "desc:", desc)
+#         return image_links, desc
+#
+#     except Exception as e:
+#         print(f"get_ins_info an error occurred: {e}")
+#         traceback.print_exc()
+#         return [], desc
+#
+#     finally:
+#         driver.quit()
+
+
 async def main():
     # 测试图文
-    image_url = get_xiaohongshu_info('http://xhslink.com/oooooooo')
+    image_url = get_xiaohongshu_info('http://xhslink.com/B/HrFWhw')
     # jpgFiles = await util.downImages(image_url)
     #
     # 测试视频

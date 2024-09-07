@@ -18,6 +18,7 @@ services:
       DLPANDA_XHS_TOKEN: panda
       DLPANDA_DOUYIN_TOKEN: panda_douyin
       STAND_ALONE_CHROME: http://192.168.1.1:4444/wd/hub
+      FLARESOLVERR: http://192.168.1.1:8191/v1
       AUTHORIZED_USERS: 1111111111,2222222222
 
     deploy:

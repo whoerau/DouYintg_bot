@@ -12,9 +12,12 @@ RS.cookies.update({
     'dl_token': DLPANDA_XHS_TOKEN
 })
 
-standalone_chrome = os.getenv('STAND_ALONE_CHROME')
+standalone_chrome = os.getenv('STAND_ALONE_CHROME') or "http://127.0.0.1:4444/wd/hub"
 chrome_options = webdriver.ChromeOptions()
 chrome_options.add_argument(
     'user-agent=Mozilla/5.0 (Macddcc; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36')
 chrome_options.add_argument('--headless')
 chrome_options.add_argument('--incognito')
+
+
+FLARESOLVERR = os.getenv('FLARESOLVERR') or "http://127.0.0.1:8191/v1"
