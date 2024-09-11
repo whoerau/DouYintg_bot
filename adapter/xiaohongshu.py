@@ -4,7 +4,7 @@ import traceback
 
 from lxml import etree
 from adapter.dlpanda import RS
-from adapter.dlpanda import FLARESOLVERR
+from adapter.dlpanda import FLARESOLVERR, XIAOHONGSHU_API
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -132,9 +132,35 @@ def get_xiaohongshu_info(url):
 #         driver.quit()
 
 
+def get_xiaohongshu_info3(url):
+    img_links = []
+    desc = ""
+
+    server = XIAOHONGSHU_API
+    data = {
+        "url": url,
+        "download": False,
+    }
+    response = RS.post(server, json=data)
+    rsp = response.json()
+
+    data = rsp.get('data')
+    if data:
+        desc = data.get('作品标题', '')
+        media_url = data.get('下载地址', [])
+        if data.get('作品类型', '') == '视频':
+            print("video:", media_url[0], "desc:", desc)
+            return media_url[0], desc
+        else:
+            img_links = media_url
+
+    print("image:", img_links, "desc:", desc)
+    return img_links, desc
+
+
 async def main():
     # 测试图文
-    image_url = get_xiaohongshu_info('http://xhslink.com/B/HrFWhw')
+    image_url = get_xiaohongshu_info3('http://xhslink.com/a/UH6PLLyVNMDV')
     # jpgFiles = await util.downImages(image_url)
     #
     # 测试视频

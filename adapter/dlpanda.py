@@ -21,3 +21,4 @@ chrome_options.add_argument('--incognito')
 
 
 FLARESOLVERR = os.getenv('FLARESOLVERR') or "http://127.0.0.1:8191/v1"
+XIAOHONGSHU_API = os.getenv('XIAOHONGSHU_API') or "http://127.0.0.1:8000/xhs"

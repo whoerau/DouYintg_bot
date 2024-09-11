@@ -2,6 +2,7 @@ import datetime
 import os
 import re
 import uuid
+import asyncio
 
 # import python_socks
 # import socks
@@ -9,7 +10,7 @@ from telethon import TelegramClient, events
 
 import util
 from adapter.kuaishou import get_kuaishou_info, get_kuaishou_info_via_dlpanda
-from adapter.xiaohongshu import get_xiaohongshu_info
+from adapter.xiaohongshu import get_xiaohongshu_info3
 from adapter.instagram import get_ins_info
 from adapter.twitter import get_twitter_info
 from adapter.yt import download
@@ -79,7 +80,7 @@ async def echo_all(event):
             await handleKuaiShou(event, text)
             return
         elif 'xhslink' in text:
-            await handle_media(event, text, get_xiaohongshu_info)
+            await handle_media(event, text, get_xiaohongshu_info3)
             return
         elif 'instagram' in text:
             await handle_media(event, text, get_ins_info)
@@ -100,7 +101,7 @@ async def echo_all(event):
                 await handleKuaiShou(event, text)
                 return
             elif 'xhslink' in text:
-                await handle_media(event, text, get_xiaohongshu_info)
+                await handle_media(event, text, get_xiaohongshu_info3)
                 return
             elif 'instagram' in text:
                 await handle_media(event, text, get_ins_info)
@@ -184,26 +185,33 @@ async def hand_Yt(event, text):
     await msg3.delete()
 
 
-async def handle_media(event, text, platform_info_function):
-    urls = re.findall(pattern, text)
-    msg1 = await event.client.send_message(event.chat_id, '正在下载...')
-
-    video_url, desc = platform_info_function(urls[0])
+async def process_media(event, video_url, desc):
+    """处理媒体下载和发送"""
     if isinstance(video_url, list):
-        jpg_files = await util.downImages(video_url)
-        jpg_files = [file for file in jpg_files if os.path.exists(file)]  # 过滤存在的文件
-        msg = await event.client.send_file(
-            event.chat_id,
-            jpg_files,
-            caption=captionTemplate % desc,
-            reply_to=event.id,
-            parse_mode='html',
-            progress_callback=callback
-        )
-        await bot.forward_messages(CHANNEL_ID, msg)
+        if len(video_url) == 0:
+            raise ValueError("没有找到视频URL")  # 触发重试
+        else:
+            force_document = False
+            jpg_files = await util.downImages(video_url)
+            jpg_files = [file for file in jpg_files if os.path.exists(file)]  # 过滤存在的文件
+            for jpg_file in jpg_files:
+                if os.path.getsize(jpg_file) > 10 * 1024 * 1024:
+                    force_document = True
+                    break
 
-        for jpg_file in jpg_files:
-            os.remove(jpg_file)
+            msg = await event.client.send_file(
+                event.chat_id,
+                jpg_files,
+                force_document=force_document,
+                caption=captionTemplate % desc,
+                reply_to=event.id,
+                parse_mode='html',
+                progress_callback=callback
+            )
+            await bot.forward_messages(CHANNEL_ID, msg)
+
+            for jpg_file in jpg_files:
+                os.remove(jpg_file)
     else:
         uuid_str = str(uuid.uuid4())
         filename = uuid_str + '.mp4'
@@ -222,7 +230,26 @@ async def handle_media(event, text, platform_info_function):
         os.remove(filename)
         await bot.forward_messages(CHANNEL_ID, msg)
 
-    await msg1.delete()
+
+async def handle_media(event, text, platform_info_function):
+    urls = re.findall(pattern, text)
+    msg1 = await event.client.send_message(event.chat_id, '正在下载...')
+
+    retry_attempts = 3  # 最大重试次数
+    for attempt in range(retry_attempts):
+        try:
+            video_url, desc = platform_info_function(urls[0])
+            await process_media(event, video_url, desc)  # 调用抽象出来的处理函数
+            break  # 下载成功，跳出循环
+        except Exception as e:
+            print(f"第 {attempt + 1} 次尝试失败: {e}")
+            if attempt < retry_attempts - 1:
+                await event.client.send_message(event.chat_id, f'下载失败，重试中...（{attempt + 1}/{retry_attempts}）')
+                await asyncio.sleep(2)  # 等待2秒后重试
+            else:
+                await event.reply('下载失败，已重试3次。')
+
+    await msg1.delete()  # 清除“正在下载...”提示
 
 
 def callback(current, total):
