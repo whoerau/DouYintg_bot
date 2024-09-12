@@ -235,7 +235,7 @@ async def handle_media(event, text, platform_info_function):
     urls = re.findall(pattern, text)
     msg1 = await event.client.send_message(event.chat_id, '正在下载...')
 
-    retry_attempts = 5  # 最大重试次数
+    retry_attempts = 10  # 最大重试次数
     retry_messages = []  # 用于存储重试消息的列表
 
     for attempt in range(retry_attempts):
@@ -253,7 +253,9 @@ async def handle_media(event, text, platform_info_function):
                 retry_messages.append(retry_msg)  # 将重试消息存储在列表中
                 await asyncio.sleep(attempt + 1)  # 等待时间从 1 秒到 5 秒依次递增
             else:
-                await event.reply('下载失败，已重试5次。')
+                for msg in retry_messages:
+                    await msg.delete()
+                await event.reply('下载失败，已重试10次')
 
     await msg1.delete()  # 清除“正在下载...”提示
 
