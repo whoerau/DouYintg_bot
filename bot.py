@@ -3,6 +3,7 @@ import os
 import re
 import uuid
 import asyncio
+import aiofiles
 
 # import python_socks
 # import socks
@@ -185,38 +186,75 @@ async def hand_Yt(event, text):
     await msg3.delete()
 
 
-async def process_media(event, video_url, desc):
+async def process_media(event, video_url, desc, extra_with_doc):
     """处理媒体下载和发送"""
     if isinstance(video_url, list):
         if len(video_url) == 0:
             raise ValueError("没有找到视频URL")  # 触发重试
         else:
-            force_document = False
-            jpg_files = await util.downImages(video_url)
-            jpg_files = [file for file in jpg_files if os.path.exists(file)]  # 过滤存在的文件
-            for jpg_file in jpg_files:
-                if os.path.getsize(jpg_file) > 10 * 1024 * 1024:
-                    force_document = True
-                    break
+            jpg_files = []  # Store files smaller than 10 MB
+            doc_files = []  # Store files larger than 10 MB
 
-            msg = await event.client.send_file(
-                event.chat_id,
-                jpg_files,
-                force_document=force_document,
-                caption=captionTemplate % desc,
-                reply_to=event.id,
-                parse_mode='html',
-                progress_callback=callback
-            )
-            await bot.forward_messages(CHANNEL_ID, msg)
+            downloaded_files = await util.downImages(video_url)
+            downloaded_files = [file for file in downloaded_files if os.path.exists(file)]  # 过滤存在的文件
 
-            for jpg_file in jpg_files:
-                os.remove(jpg_file)
+            for file in downloaded_files:
+                if os.path.getsize(file) < 10 * 1024 * 1024:
+                    jpg_files.append(file)  # Files smaller than 10 MB
+                else:
+                    doc_files.append(file)
+
+            # Send image files (jpg group) if they exist
+            if jpg_files:
+                msg = await event.client.send_file(
+                    event.chat_id,
+                    jpg_files,
+                    force_document=False,  # Sent as images
+                    caption=captionTemplate % desc,
+                    reply_to=event.id,
+                    parse_mode='html',
+                    progress_callback=callback
+                )
+                await bot.forward_messages(CHANNEL_ID, msg)
+
+            if extra_with_doc:
+                # Send document files (doc group) if they exist
+                if downloaded_files:
+                    msg = await event.client.send_file(
+                        event.chat_id,
+                        downloaded_files,
+                        force_document=True,  # Sent as documents
+                        caption=captionTemplate % desc,
+                        reply_to=event.id,
+                        parse_mode='html',
+                        progress_callback=callback
+                    )
+                    await bot.forward_messages(CHANNEL_ID, msg)
+            else:
+                if doc_files:
+                    msg = await event.client.send_file(
+                        event.chat_id,
+                        doc_files,
+                        force_document=True,  # Sent as documents
+                        caption=captionTemplate % desc,
+                        reply_to=event.id,
+                        parse_mode='html',
+                        progress_callback=callback
+                    )
+                    await bot.forward_messages(CHANNEL_ID, msg)
+
+            # Remove all files after sending
+            for file in downloaded_files:
+                async with aiofiles.open(file, 'wb'):
+                    os.remove(file)
+
     else:
         uuid_str = str(uuid.uuid4())
         filename = uuid_str + '.mp4'
         await util.run(video_url, filename)
         await util.imgCoverFromFile(filename, f'{filename}.jpg')
+
+        # Send video file
         msg = await event.client.send_file(
             event.chat_id,
             filename,
@@ -227,7 +265,9 @@ async def process_media(event, video_url, desc):
             reply_to=event.id,
             progress_callback=callback
         )
-        os.remove(filename)
+
+        async with aiofiles.open(filename, 'wb'):
+            os.remove(filename)
         await bot.forward_messages(CHANNEL_ID, msg)
 
 
@@ -241,7 +281,8 @@ async def handle_media(event, text, platform_info_function):
     for attempt in range(retry_attempts):
         try:
             video_url, desc = platform_info_function(urls[0])
-            await process_media(event, video_url, desc)  # 调用抽象出来的处理函数
+            extra_with_doc = platform_info_function==get_xiaohongshu_info3
+            await process_media(event, video_url, desc, extra_with_doc)  # 调用抽象出来的处理函数
             # 下载成功，删除所有重试消息
             for msg in retry_messages:
                 await msg.delete()
@@ -249,7 +290,8 @@ async def handle_media(event, text, platform_info_function):
         except Exception as e:
             print(f"第 {attempt + 1} 次尝试失败: {e}")
             if attempt < retry_attempts - 1:
-                retry_msg = await event.client.send_message(event.chat_id, f'下载失败，重试中...（{attempt + 1}/{retry_attempts}）')
+                retry_msg = await event.client.send_message(event.chat_id,
+                                                            f'下载失败，重试中...（{attempt + 1}/{retry_attempts}）')
                 retry_messages.append(retry_msg)  # 将重试消息存储在列表中
                 await asyncio.sleep(attempt + 1)  # 等待时间从 1 秒到 5 秒依次递增
             else:
@@ -258,8 +300,6 @@ async def handle_media(event, text, platform_info_function):
                 await event.reply('下载失败，已重试10次')
 
     await msg1.delete()  # 清除“正在下载...”提示
-
-
 
 
 def callback(current, total):
