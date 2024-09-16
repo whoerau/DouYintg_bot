@@ -21,6 +21,7 @@ API_ID = int(os.getenv('API_ID'))
 API_HASH = os.getenv('API_HASH')
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 CHANNEL_ID = int(os.getenv('CHANNEL_ID'))
+CHANNEL_GROUP_ID = int(os.getenv('CHANNEL_GROUP_ID'))
 # =========================需要设置=================================================
 
 # 定义授权用户的用户名列表
@@ -80,7 +81,7 @@ async def echo_all(event):
         elif 'kuaishou' in text:
             await handleKuaiShou(event, text)
             return
-        elif 'xhslink' in text:
+        elif 'xhslink' in text or 'xiaohongshu.com' in text:
             await handle_media(event, text, get_xiaohongshu_info3)
             return
         elif 'instagram' in text:
@@ -101,7 +102,7 @@ async def echo_all(event):
             elif 'kuaishou' in text:
                 await handleKuaiShou(event, text)
                 return
-            elif 'xhslink' in text:
+            elif 'xhslink' in text or 'xiaohongshu.com' in text:
                 await handle_media(event, text, get_xiaohongshu_info3)
                 return
             elif 'instagram' in text:
@@ -187,88 +188,172 @@ async def hand_Yt(event, text):
 
 
 async def process_media(event, video_url, desc, extra_with_doc):
+    # from telethon.tl.types import InputChannel
+    # from telethon.tl.functions.channels import GetFullChannelRequest
+    # # 获取频道的实体对象
+    # channel_entity = await event.client.get_entity(CHANNEL_ID)
+    # # 使用获取到的实体对象创建 InputChannel 对象
+    # input_channel = InputChannel(channel_entity.id, channel_entity.access_hash)
+    # # 获取频道的完整信息
+    # full_channel = await event.client(GetFullChannelRequest(input_channel))
+    #
+    # # 打印频道信息
+    # print("频道信息:", full_channel.to_dict())
+
     """处理媒体下载和发送"""
     if isinstance(video_url, list):
         if len(video_url) == 0:
             raise ValueError("没有找到视频URL")  # 触发重试
         else:
-            jpg_files = []  # Store files smaller than 10 MB
-            doc_files = []  # Store files larger than 10 MB
+            jpg_files = []  # 存储小于 10 MB 的文件
+            doc_files = []  # 存储大于 10 MB 的文件
 
-            downloaded_files = await util.downImages(video_url)
-            downloaded_files = [file for file in downloaded_files if os.path.exists(file)]  # 过滤存在的文件
+            try:
+                # 下载图片文件
+                downloaded_files = await util.downImages(video_url)
+                downloaded_files = [file for file in downloaded_files if os.path.exists(file)]  # 过滤存在的文件
+            except Exception as e:
+                raise RuntimeError(f"下载图片时出错: {e}")
 
+            # 文件大小分类
             for file in downloaded_files:
                 if os.path.getsize(file) < 10 * 1024 * 1024:
-                    jpg_files.append(file)  # Files smaller than 10 MB
+                    jpg_files.append(file)  # 小于 10 MB
                 else:
                     doc_files.append(file)
 
-            # Send image files (jpg group) if they exist
-            if jpg_files:
-                msg = await event.client.send_file(
-                    event.chat_id,
-                    jpg_files,
-                    force_document=False,  # Sent as images
-                    caption=captionTemplate % desc,
-                    reply_to=event.id,
-                    parse_mode='html',
-                    progress_callback=callback
-                )
-                await bot.forward_messages(CHANNEL_ID, msg)
+            jpg_msg = None  # 保存发送消息的对象
+            doc_msg = None  # 保存发送文档消息的对象
+            download_msg = None  # 保存发送下载消息的对象
 
-            if extra_with_doc:
-                # Send document files (doc group) if they exist
-                if downloaded_files:
-                    msg = await event.client.send_file(
+            # 发送图片文件
+            if jpg_files:
+                try:
+                    jpg_msg = await event.client.send_file(
+                        event.chat_id,
+                        jpg_files,
+                        force_document=False,  # 以图片形式发送
+                        caption=captionTemplate % desc,
+                        reply_to=event.id,
+                        parse_mode='html',
+                        progress_callback=callback
+                    )
+                except Exception as e:
+                    raise RuntimeError(f"发送图片时出错: {e}")
+
+            # 发送文档文件
+            try:
+                if extra_with_doc and downloaded_files:
+                    download_msg = await event.client.send_file(
                         event.chat_id,
                         downloaded_files,
-                        force_document=True,  # Sent as documents
+                        force_document=True,
                         caption=captionTemplate % desc,
                         reply_to=event.id,
                         parse_mode='html',
                         progress_callback=callback
                     )
-                    await bot.forward_messages(CHANNEL_ID, msg)
-            else:
-                if doc_files:
-                    msg = await event.client.send_file(
+                elif doc_files:
+                    doc_msg = await event.client.send_file(
                         event.chat_id,
                         doc_files,
-                        force_document=True,  # Sent as documents
+                        force_document=True,
                         caption=captionTemplate % desc,
                         reply_to=event.id,
                         parse_mode='html',
                         progress_callback=callback
                     )
-                    await bot.forward_messages(CHANNEL_ID, msg)
+            except Exception as e:
+                raise RuntimeError(f"发送文档时出错: {e}")
 
-            # Remove all files after sending
+            # 转发到目标频道
+            try:
+                forwarded_msg = None
+                if jpg_msg:
+                    # 如果存在jpg_msg消息对象，先转发jpg组
+                    forwarded_msg = await bot.forward_messages(CHANNEL_ID, jpg_msg)
+                    # 检查forwarded_msg是否为列表
+                    if isinstance(forwarded_msg, list):
+                        # 取第一个消息进行评论
+                        forwarded_msg = forwarded_msg[0]
+
+                if download_msg or doc_msg:
+                    await bot.forward_messages(
+                        CHANNEL_ID,
+                        download_msg if download_msg else doc_msg,  # 直接转发已发送的文档消息，不作为评论
+                    )
+
+                # """
+                # 目前 bot 无法进行 commit_to, 暂时无法实现作为评论发送到目标频道
+                # """
+                # if jpg_files and extra_with_doc and downloaded_files:
+                #     # 如果存在jpg组，doc_files 和 downloaded_files 作为评论发送到目标频道
+                #     await event.client.send_message(
+                #         CHANNEL_ID,
+                #         captionTemplate % desc,
+                #         file=downloaded_files,
+                #         force_document=True,
+                #         comment_to=forwarded_msg if forwarded_msg else None,  # 评论转发消息
+                #         parse_mode='html'
+                #     )
+                # elif jpg_files and doc_files:
+                #     await event.client.send_message(
+                #         CHANNEL_ID,
+                #         captionTemplate % desc,
+                #         file=doc_files,
+                #         force_document=True,
+                #         comment_to=forwarded_msg if forwarded_msg else None,  # 评论转发消息
+                #         parse_mode='html'
+                #     )
+                # else:
+                #     # 如果没有jpg组，直接转发之前发送的doc_files或downloaded_files，不作为评论，直接转发
+                #     if download_msg or doc_msg:
+                #         await bot.forward_messages(
+                #             CHANNEL_ID,
+                #             download_msg if download_msg else doc_msg,  # 直接转发已发送的文档消息，不作为评论
+                #         )
+            except Exception as e:
+                raise RuntimeError(f"转发文件时出错: {e}")
+
+            # 删除发送后的文件
             for file in downloaded_files:
-                async with aiofiles.open(file, 'wb'):
-                    os.remove(file)
+                try:
+                    os.remove(file)  # 直接删除文件
+                except OSError as e:
+                    raise RuntimeError(f"删除文件时出错: {e}")
 
     else:
         uuid_str = str(uuid.uuid4())
-        filename = uuid_str + '.mp4'
-        await util.run(video_url, filename)
-        await util.imgCoverFromFile(filename, f'{filename}.jpg')
+        filename = f'{uuid_str}.mp4'
 
-        # Send video file
-        msg = await event.client.send_file(
-            event.chat_id,
-            filename,
-            supports_streaming=True,
-            thumb=f'{filename}.jpg',
-            caption=captionTemplate % desc,
-            parse_mode='html',
-            reply_to=event.id,
-            progress_callback=callback
-        )
+        try:
+            # 下载视频
+            await util.run(video_url, filename)
+            await util.imgCoverFromFile(filename, f'{filename}.jpg')  # 生成封面
+        except Exception as e:
+            raise RuntimeError(f"下载或生成封面时出错: {e}")
 
-        async with aiofiles.open(filename, 'wb'):
-            os.remove(filename)
-        await bot.forward_messages(CHANNEL_ID, msg)
+        # 发送视频文件
+        try:
+            msg = await event.client.send_file(
+                event.chat_id,
+                filename,
+                supports_streaming=True,
+                thumb=f'{filename}.jpg',
+                caption=captionTemplate % desc,
+                parse_mode='html',
+                reply_to=event.id,
+                progress_callback=callback
+            )
+            forwarded_msg = await bot.forward_messages(CHANNEL_ID, msg)
+        except Exception as e:
+            raise RuntimeError(f"发送视频时出错: {e}")
+
+        # 删除发送后的文件
+        try:
+            os.remove(filename)  # 删除视频文件
+        except OSError as e:
+            raise RuntimeError(f"删除视频文件时出错: {e}")
 
 
 async def handle_media(event, text, platform_info_function):
@@ -281,13 +366,13 @@ async def handle_media(event, text, platform_info_function):
     for attempt in range(retry_attempts):
         try:
             video_url, desc = platform_info_function(urls[0])
-            extra_with_doc = platform_info_function==get_xiaohongshu_info3
+            extra_with_doc = platform_info_function == get_xiaohongshu_info3
             await process_media(event, video_url, desc, extra_with_doc)  # 调用抽象出来的处理函数
             # 下载成功，删除所有重试消息
             for msg in retry_messages:
                 await msg.delete()
             break  # 跳出循环
-        except Exception as e:
+        except ValueError as e:
             print(f"第 {attempt + 1} 次尝试失败: {e}")
             if attempt < retry_attempts - 1:
                 retry_msg = await event.client.send_message(event.chat_id,
@@ -298,6 +383,11 @@ async def handle_media(event, text, platform_info_function):
                 for msg in retry_messages:
                     await msg.delete()
                 await event.reply('下载失败，已重试10次')
+        except Exception as e:
+            for msg in retry_messages:
+                await msg.delete()
+            await event.reply(f'下载失败: {e}')
+            break
 
     await msg1.delete()  # 清除“正在下载...”提示
 
