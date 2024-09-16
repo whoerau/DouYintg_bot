@@ -1,4 +1,6 @@
 import base64
+import re
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -41,28 +43,38 @@ def get_twitter_info(url):
 
         result_overlay = soup.find('div', class_='result_overlay')
         if result_overlay:
-            video_links = result_overlay.find_all('a', class_='dl-button')
-            # filter href is None
-            video_links = [link for link in video_links if link.get('href') is not None]
+            # 查找所有带有 'download_link' 类的 a 标签
+            video_links = result_overlay.find_all('a', class_='download_link')
+
+            # 处理每一个 a 标签，解析 href 或 onclick 中的链接
+            parsed_links = []
+            for link in video_links:
+                href = link.get('href')
+
+                if href == "#":
+                    # 提取 onclick 中的 URL (假设结构类似 downloadX('url'))
+                    onclick = link.get('onclick')
+                    match = re.search(r"downloadX\('(.+?)'\)", onclick)
+                    if match:
+                        parsed_links.append((link, match.group(1)))  # 保留完整的 a 标签和链接
+                else:
+                    # href 中存在直接的链接
+                    parsed_links.append((link, href))
+
+            # 查找最高分辨率的链接
             best_resolution_link = max(
-                video_links,
-                key=lambda link: int(link.text.split('x')[1]),
+                parsed_links,
+                key=lambda item: int(item[0].text.split('x')[1]) if 'x' in item[0].text else 0,
                 default=None
             )
 
+            # 如果找到了最高分辨率的链接
             if best_resolution_link:
-                media_link = best_resolution_link['href']
-                best_resolution = int(best_resolution_link.text.split('x')[1])
-                print("best_resolution video :", media_link, best_resolution)
+                link_tag, media_link = best_resolution_link
+                best_resolution = int(link_tag.text.split('x')[1])  # 提取分辨率的高度部分
+                print("Best resolution video:", media_link, best_resolution)
             else:
-                print("No video link found")
-
-            # script = result_overlay.find('script', string=lambda text: text and "hdInfoLink" in text)
-            # if script:
-            #     media_link = script.string.split('hdInfoLink = "')[1].split('"')[0]
-            #     print("media_link", media_link)
-            # else:
-            #     print("hdInfoLink not found in script content")
+                print("No video link found with a valid resolution")
 
         else:
             print("result overlay not found. Check if the page structure has changed.")
@@ -77,6 +89,6 @@ def get_twitter_info(url):
 
 
 if __name__ == '__main__':
-    url = "https://x.com/paofumeizhi/status/1794044925094613331?s=46"
+    url = "https://x.com/guoguo1039/status/1834829937666122061?s=46"
     # url = "https://x.com/yarays/status/1784089243662553271?s=46"
     get_twitter_info(url)
