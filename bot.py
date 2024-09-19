@@ -392,7 +392,9 @@ async def handle_media(event, text, platform_info_function):
 
 
 def callback(current, total):
-    log.info("\r", '正在发送', current, 'out of', total, 'bytes: {:.2%}'.format(current / total), end="", flush=True)
+    # print("\r", '正在发送', current, 'out of', total,
+    #       'bytes: {:.2%}'.format(current / total), end="", flush=True)
+    log.info('正在发送 %d out of %d bytes: %.2f%%', current, total, (current / total) * 100)
 
 
 #  title:
