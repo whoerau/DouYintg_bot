@@ -1,6 +1,7 @@
 from os import path
 
 from yt_dlp import YoutubeDL
+from utils import run_log as log
 
 ydl_optssx = {
     'format': 'bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
@@ -28,15 +29,16 @@ def download(url: str):
     # print(info['title'])
     error_code = ydl.download(url)
 
-    print(f'一些视频下载失败' if error_code
-          else '视频下载完成')
+    log.info(f'一些视频下载失败' if error_code
+             else '视频下载完成')
 
     return path.join("downloads", f"{info['id']}.{info['ext']}"), info['title']
+
 
 if __name__ == '__main__':
 
     try:
         pat, title = download('https://cn.pornhub.com/view_video.php?viewkey=651ee30037a36')
-        print(pat, title)
+        log.info(f"video: {pat}, desc: {title}")
     except Exception as ep:
-        print(ep)
+        log.error(ep)

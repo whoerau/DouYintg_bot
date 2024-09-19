@@ -7,6 +7,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from adapter.dlpanda import standalone_chrome, chrome_options
 from bs4 import BeautifulSoup
+from utils import run_log as log
 
 titi = "aHR0cHM6Ly9zc3N0d2l0dGVyLmNvbS8="
 
@@ -72,15 +73,15 @@ def get_twitter_info(url):
             if best_resolution_link:
                 link_tag, media_link = best_resolution_link
                 best_resolution = int(link_tag.text.split('x')[1])  # 提取分辨率的高度部分
-                print("Best resolution video:", media_link, best_resolution)
+                log.info(f"Best resolution video: {media_link}, resolution: {best_resolution}")
             else:
-                print("No video link found with a valid resolution")
+                log.info("No video link found with a valid resolution")
 
         else:
-            print("result overlay not found. Check if the page structure has changed.")
+            log.info("result overlay not found. Check if the page structure has changed.")
 
     except Exception as e:
-        print(f"get_twitter_info an error occurred: {e}")
+        log.error(f"get_twitter_info an error occurred: {e}")
 
     finally:
         driver.quit()

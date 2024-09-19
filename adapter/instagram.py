@@ -6,6 +6,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from adapter.dlpanda import standalone_chrome, chrome_options
 from bs4 import BeautifulSoup
+from utils import run_log as log
 
 didi = "aHR0cHM6Ly9zbmFwaW5zdGEuYXBwLw=="
 
@@ -55,13 +56,13 @@ def get_ins_info(url):
             # 获取 <a> 元素中的文本内容
             download_text = download_link_element.text.strip()
             if download_text == "Download Video":
-                print(img_links[0])
+                log.info(f"video: {img_links[0]}, desc: {desc}")
                 return img_links[0], desc
-        print(img_links)
+        log.info(f"image: {img_links}, desc: {desc}")
         return img_links, desc
 
     except Exception as e:
-        print(f"get_ins_info an error occurred: {e}")
+        log.error(f"get_ins_info an error occurred: {e}")
         return [], desc
 
     finally:

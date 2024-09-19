@@ -3,6 +3,7 @@ import uuid
 import aiofiles
 import aiohttp
 from tenacity import retry, stop_after_attempt, wait_fixed
+from .logger import run_log as log
 
 headers = {
     'accept-language': 'zh-CN,zh;q=0.9',
@@ -21,7 +22,8 @@ async def run(url, name):
                     if not chunk:
                         break
                     await fp.write(chunk)
-                print("\r", '任务文件 ', name, ' 下载成功', end="", flush=True)
+                # print("\r", '任务文件 ', name, ' 下载成功', end="", flush=True)
+                log.info(f"任务文件 {name} 下载成功")
 
 
 async def imgCoverFromFile(input, output):
@@ -35,7 +37,7 @@ async def imgCoverFromFile(input, output):
 
     stdout, stderr = await proc.communicate()
 
-    print(f'[{command!r} exited with {proc.returncode}]')
+    log.info(f'[{command!r} exited with {proc.returncode}]')
 
 
 async def downImg(session, url, filename, sem):
@@ -47,7 +49,8 @@ async def downImg(session, url, filename, sem):
             content = await r.content.read()
             async with aiofiles.open(filename, 'wb') as f:
                 await f.write(content)
-            print("\r", '任务文件 ', filename, ' 下载成功', end="", flush=True)
+            # print("\r", '任务文件 ', filename, ' 下载成功', end="", flush=True)
+            log.info(f"任务文件 {filename} 下载成功")
 
 
 # 下载图片

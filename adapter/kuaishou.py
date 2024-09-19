@@ -2,7 +2,7 @@ import asyncio
 
 import requests
 
-import util
+from utils import util
 
 import re, os
 

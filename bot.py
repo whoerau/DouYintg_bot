@@ -3,18 +3,17 @@ import os
 import re
 import uuid
 import asyncio
-import aiofiles
 
 # import python_socks
 # import socks
 from telethon import TelegramClient, events
 
-import util
 from adapter.kuaishou import get_kuaishou_info, get_kuaishou_info_via_dlpanda
 from adapter.xiaohongshu import get_xiaohongshu_info3
 from adapter.instagram import get_ins_info
 from adapter.twitter import get_twitter_info
 from adapter.yt import download
+from utils import run_log as log, util
 
 # ======================需要设置====================================================
 API_ID = int(os.getenv('API_ID'))
@@ -174,7 +173,7 @@ async def hand_Yt(event, text):
         await bot.forward_messages(CHANNEL_ID, msg)
 
     except Exception as ep:
-        print("exception hand_Yt", ep)
+        log.error("exception hand_Yt", ep)
         await event.reply(str(ep))
         return
     finally:
@@ -213,7 +212,7 @@ async def process_media(event, video_url, desc, extra_with_doc):
                 downloaded_files = await util.downImages(video_url)
                 downloaded_files = [file for file in downloaded_files if os.path.exists(file)]  # 过滤存在的文件
             except Exception as e:
-                raise RuntimeError(f"下载图片时出错: {e}")
+                raise ValueError(f"下载图片时出错: {e}")
 
             # 文件大小分类
             for file in downloaded_files:
@@ -373,16 +372,16 @@ async def handle_media(event, text, platform_info_function):
                 await msg.delete()
             break  # 跳出循环
         except ValueError as e:
-            print(f"第 {attempt + 1} 次尝试失败: {e}")
+            log.info(f"第 {attempt + 1} 次尝试失败: {e}")
             if attempt < retry_attempts - 1:
                 retry_msg = await event.client.send_message(event.chat_id,
-                                                            f'下载失败，重试中...（{attempt + 1}/{retry_attempts}）')
+                                                            f'解析失败，重试中...（{attempt + 1}/{retry_attempts}）')
                 retry_messages.append(retry_msg)  # 将重试消息存储在列表中
                 await asyncio.sleep(attempt + 1)  # 等待时间从 1 秒到 5 秒依次递增
             else:
                 for msg in retry_messages:
                     await msg.delete()
-                await event.reply('下载失败，已重试10次')
+                await event.reply('解析失败，已重试10次')
         except Exception as e:
             for msg in retry_messages:
                 await msg.delete()
@@ -393,13 +392,12 @@ async def handle_media(event, text, platform_info_function):
 
 
 def callback(current, total):
-    print("\r", '正在发送', current, 'out of', total,
-          'bytes: {:.2%}'.format(current / total), end="", flush=True)
+    log.info("\r", '正在发送', current, 'out of', total, 'bytes: {:.2%}'.format(current / total), end="", flush=True)
 
 
 #  title:
 #  链接：
 #  描述：
 
-print('bot启动....')
+log.info('bot启动....')
 bot.run_until_disconnected()

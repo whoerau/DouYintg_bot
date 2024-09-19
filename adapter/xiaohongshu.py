@@ -5,6 +5,7 @@ import traceback
 from lxml import etree
 from adapter.dlpanda import RS
 from adapter.dlpanda import FLARESOLVERR, XIAOHONGSHU_API
+from utils import run_log as log
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -25,7 +26,7 @@ def get_xiaohongshu_via_flare_solver(url):
     }
 
     response = RS.post(flare_solverr, headers=headers, data=payload)
-    print("response from FLARESOLVERR", response.json())
+    log.info(f"response from FLARESOLVERR {response.json()}")
     res = response.json()['solution']['response']
 
     return res
@@ -59,7 +60,7 @@ def get_xiaohongshu_info(url):
         video_links.append(links)
 
     if len(video_links) == 1:
-        print(video_links, desc)
+        log.info(f"video: {video_links[0]}, desc: {desc}")
         return video_links[0], desc
 
     # image
@@ -75,7 +76,7 @@ def get_xiaohongshu_info(url):
         else:
             links = res[aaa[i][1]:bbb[i][0]]
         img_links.append(links)
-    print('desc', desc, 'img_links', img_links)
+    log.info(f"image: {img_links}, desc: {desc}")
 
     return img_links, desc
 
@@ -149,12 +150,12 @@ def get_xiaohongshu_info3(url):
         desc = data.get('作品标题', '')
         media_url = data.get('下载地址', [])
         if data.get('作品类型', '') == '视频':
-            print("video:", media_url[0], "desc:", desc)
+            log.info(f"video: {media_url[0]}, desc: {desc}")
             return media_url[0], desc
         else:
             img_links = media_url
 
-    print("image:", img_links, "desc:", desc)
+    log.info(f"image: {img_links}, desc: {desc}")
     return img_links, desc
 
 
