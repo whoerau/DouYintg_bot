@@ -61,17 +61,6 @@ async def echo_all(event):
         if user.id not in AUTHORIZED_USERS:
             return
 
-    print(
-        "chat_id:", str(event.chat_id),
-        "username:", user.username,
-        "first_name:", user.first_name,
-        "last_name:", user.last_name,
-        "access_hash:", user.access_hash,
-        "phone:", user.phone,
-        "status:", user.status,
-        "photo:", user.photo,
-        str(datetime.datetime.now()) + ':' + text
-    )
     log.info(
         f"chat_id: {event.chat_id}, username: {user.username}, first_name: {user.first_name}, last_name: {user.last_name}, access_hash: {user.access_hash}, phone: {user.phone}, status: {user.status}, photo: {user.photo}, {datetime.datetime.now()}:{text}")
 
