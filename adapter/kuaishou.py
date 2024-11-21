@@ -60,7 +60,7 @@ def get_kuaishou_info_via_dlpanda(url):
         return video_links[0], desc
 
     # image
-    aaa = [r.span() for r in re.finditer('<img alt src="', res)]
+    aaa = [r.span() for r in re.finditer('<img alt="" src="', res)]
     bbb = [r.span() for r in re.finditer('" width="100%"', res)]
     img_links = []
 
