@@ -315,13 +315,21 @@ async def process_media(event, video_url, desc, extra_with_doc):
     else:
         uuid_str = str(uuid.uuid4())
         filename = f'{uuid_str}.mp4'
+        thumb_file = None
 
         try:
             # 下载视频
             await util.run(video_url, filename)
-            await util.imgCoverFromFile(filename, f'{filename}.jpg')  # 生成封面
+
         except Exception as e:
-            raise RuntimeError(f"下载或生成封面时出错: {e}")
+            raise RuntimeError(f"下载出错: {e}")
+
+        try:
+            await util.imgCoverFromFile(filename, f'{filename}.jpg')  # 生成封面
+            thumb_file = f'{filename}.jpg'
+        except Exception as e:
+            # raise RuntimeError(f"生成封面时出错: {e}")
+            log.error(f"生成封面时出错: {e}")
 
         # 发送视频文件
         try:
@@ -329,7 +337,7 @@ async def process_media(event, video_url, desc, extra_with_doc):
                 event.chat_id,
                 filename,
                 supports_streaming=True,
-                thumb=f'{filename}.jpg',
+                thumb=thumb_file,
                 caption=captionTemplate % desc,
                 parse_mode='html',
                 reply_to=event.id,
